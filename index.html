@@ -366,27 +366,70 @@
   
   /* Mobile-specific improvements */
   @media (max-width: 768px) {
-    /* Ensure game board and keyboard are both visible */
+    /* Ensure proper layout with fixed keyboard at bottom */
+    body {
+      height: 100vh;
+      height: 100dvh; /* Use dynamic viewport height for better mobile support */
+      max-height: 100vh;
+      max-height: 100dvh;
+      overflow: hidden;
+    }
+    
+    main {
+      height: calc(100vh - 100px); /* Account for header/footer */
+      height: calc(100dvh - 100px); /* Use dynamic viewport height */
+      min-height: calc(100vh - 100px);
+      min-height: calc(100dvh - 100px);
+      max-height: calc(100vh - 100px);
+      max-height: calc(100dvh - 100px);
+      overflow: hidden;
+    }
+    
+    .wrap {
+      height: 100%;
+      padding: 4px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    /* Fixed height for controls at top */
+    .controls {
+      flex-shrink: 0;
+      height: auto;
+    }
+    
+    .stats {
+      flex-shrink: 0;
+      height: auto;
+    }
+    
+    /* Game container takes remaining space */
     .game-container {
       flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      max-height: calc(100vh - 240px); /* Reserve space for controls and keyboard */
+      overflow: hidden;
     }
     
     #board {
       flex: 0 1 auto;
-      max-height: calc(50vh - 120px); /* Limit board height */
       overflow: visible;
+      margin-bottom: 8px;
     }
     
-    .wrap {
-      padding: 4px 8px;
-      gap: 6px;
+    .msg {
+      flex-shrink: 0;
+    }
+    
+    /* Fixed keyboard at bottom */
+    .kbd {
+      flex-shrink: 0;
       height: auto;
-      min-height: calc(100vh - 80px); /* Account for header/footer */
+      margin-top: auto;
+      padding-bottom: 8px;
     }
     
     /* Compact board */
@@ -405,17 +448,17 @@
     
     /* Compact keyboard matching Wordle style */
     .kbd {
-      gap: 4px;
+      gap: 3px;
       margin-top: 4px;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
     .kbd-row {
-      gap: 4px;
+      gap: 3px;
     }
     .key { 
-      height: 48px;
-      min-width: 32px;
-      font-size: 11px;
+      height: 42px;
+      min-width: 28px;
+      font-size: 10px;
       border-radius: 3px;
       transition: all 0.08s ease;
     }
@@ -427,8 +470,8 @@
       background: #8a8d90 !important;
     }
     .key.wide {
-      min-width: 48px;
-      font-size: 10px;
+      min-width: 42px;
+      font-size: 9px;
     }
     
     /* Mobile-specific key states */
