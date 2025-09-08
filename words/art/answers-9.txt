@@ -1,0 +1,15 @@
+painter
+artist
+sketch
+canvas
+brush
+paint
+color
+shade
+hue
+tint
+tone
+art
+draw
+craft
+sculpt
