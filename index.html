@@ -28,7 +28,8 @@
   body {
     margin: 0; background: var(--bg); color: var(--fg);
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
-    display: grid; grid-template-rows: auto 1fr auto;
+    display: flex; 
+    flex-direction: column;
     /* iOS and mobile optimizations */
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
@@ -37,28 +38,30 @@
     -webkit-user-select: none;
     user-select: none;
     overscroll-behavior: none; /* Prevent overscroll bounce */
-    position: fixed; /* Prevent address bar issues on iOS */
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
+    min-height: 100vh;
+    height: auto;
   }
-  header, footer { padding: 10px 14px; border-bottom: 1px solid #222; }
+  header, footer { padding: 8px 14px; border-bottom: 1px solid #222; flex-shrink: 0; }
   footer { border-top: 1px solid #222; border-bottom: none; color: var(--muted); font-size: 12px; }
   
   main {
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-    height: 100%;
-    position: relative;
+    display: flex;
+    flex-direction: column;
   }
   
-  .wrap { max-width: 560px; margin: 0 auto; padding: 12px; }
-  .row { display: grid; gap: 4px; grid-template-columns: repeat(var(--len), 1fr); margin: 4px 0; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 8px 12px; flex: 1; display: flex; flex-direction: column; }
+  .game-container { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0; }
+  #board { flex: 0 1 auto; }
+  .msg { flex-shrink: 0; }
+  .row { display: grid; gap: 3px; grid-template-columns: repeat(var(--len), 1fr); margin: 2px 0; }
   .tile {
     aspect-ratio: 1 / 1; background: var(--tile-bg); border: 2px solid #333;
-    display: grid; place-items: center; font-weight: 700; font-size: clamp(18px, 4vw, 28px);
-    text-transform: uppercase; border-radius: 8px;
+    display: grid; place-items: center; font-weight: 700; font-size: clamp(14px, 3vw, 20px);
+    text-transform: uppercase; border-radius: 6px;
     touch-action: manipulation; /* Prevent zoom on touch */
     user-select: none; /* Prevent text selection */
     -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
@@ -114,13 +117,126 @@
     width: fit-content;
     margin: 4px auto;
   }
+  
+  /* Bottom sheet overlay styles */
+  .settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  
+  .settings-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .settings-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    border-top: 2px solid #333;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 1001;
+  }
+  
+  .settings-sheet.open {
+    transform: translateY(0);
+  }
+  
+  .settings-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #333;
+  }
+  
+  .settings-sheet-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--fg);
+  }
+  
+  .settings-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 4px;
+  }
+  
+  .settings-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .settings-sheet-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .settings-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  
+  .settings-description {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  
+  /* Hide the old inline settings panel on mobile */
   .settings-panel {
     overflow: hidden;
     transition: max-height 0.3s ease-out;
     max-height: 0;
   }
+  
   .settings-panel.open {
     max-height: 200px;
+  }
+  
+  /* Hide bottom sheet on desktop */
+  .settings-overlay {
+    display: none;
+  }
+  
+  /* Show bottom sheet on mobile */
+  @media (max-width: 768px) {
+    .settings-overlay {
+      display: block;
+    }
+    
+    .settings-panel {
+      display: none !important;
+    }
   }
   button, select {
     background: #1b1b1b; color: var(--fg); border: 1px solid #333; border-radius: 8px;
@@ -135,15 +251,15 @@
   }
   button.primary { background: var(--accent); color: #081424; border-color: transparent; }
   button:disabled { opacity: .6; cursor: not-allowed; }
-  .kbd { display: grid; gap: 6px; margin-top: 8px; }
-  .kbd-row { display: grid; gap: 6px; grid-template-columns: repeat(20, 1fr); }
+  .kbd { display: grid; gap: 4px; margin-top: 6px; flex-shrink: 0; }
+  .kbd-row { display: grid; gap: 4px; grid-template-columns: repeat(20, 1fr); }
   .key { 
     grid-column: span 2; 
-    min-height: 48px; /* Larger touch targets for mobile */
+    min-height: 42px; /* Smaller but still touchable */
     touch-action: manipulation; /* Prevents zoom on double-tap */
     -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
-    font-size: 16px; /* Better readability on mobile */
-    border-radius: 8px; /* Larger rounded corners for mobile */
+    font-size: 14px; /* Smaller font for compact layout */
+    border-radius: 6px; 
     user-select: none; /* Prevent text selection */
     cursor: pointer;
   }
@@ -180,191 +296,189 @@
   
   /* Mobile-specific improvements */
   @media (max-width: 768px) {
-    /* Enhanced mobile viewport */
-    body {
-      -webkit-text-size-adjust: 100%; /* Prevent text size adjustment on iOS */
-      -ms-text-size-adjust: 100%;
-      text-size-adjust: 100%;
-      -webkit-touch-callout: none; /* Disable callout on iOS */
-      -webkit-user-select: none; /* Disable text selection */
-      user-select: none;
-    }
-    
-    /* Improved touch targets */
-    .controls {
-      grid-template-columns: 1fr;
-      gap: 6px;
-      margin: 6px 0 6px;
-      padding: 0 4px; /* Add padding for better touch zones */
-    }
-    .controls-row {
-      justify-content: center;
-      padding: 8px 0;
-    }
-    .game-actions {
-      justify-content: center;
-      gap: 8px;
-      flex-wrap: nowrap; /* Prevent wrapping on small screens */
-    }
-    .game-actions button {
-      min-width: 60px;
-      font-size: 13px;
-      padding: 10px 12px;
+    /* Ensure game board and keyboard are both visible */
+    .game-container {
       flex: 1;
-      max-width: 80px; /* Prevent buttons from getting too wide */
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-height: calc(100vh - 240px); /* Reserve space for controls and keyboard */
     }
     
-    /* Enhanced settings toggle */
-    .settings-toggle {
-      font-size: 14px;
-      padding: 10px 16px;
-      margin: 8px auto;
-      min-height: 48px; /* Ensure touch target size */
-      border-radius: 8px;
+    #board {
+      flex: 0 1 auto;
+      max-height: calc(50vh - 120px); /* Limit board height */
+      overflow: visible;
     }
     
-    /* Improved form controls */
-    .controls-compact select {
-      padding: 10px 12px;
+    .wrap {
+      padding: 4px 8px;
+      gap: 6px;
+      height: auto;
+      min-height: calc(100vh - 80px); /* Account for header/footer */
+    }
+    
+    /* Compact board */
+    .row {
+      gap: 2px;
+      margin: 1px 0;
+    }
+    
+    /* Very compact tiles for mobile */
+    .tile { 
+      font-size: clamp(12px, 3.5vw, 16px);
+      border-radius: 4px;
+      border-width: 1px;
+      min-height: auto; /* Let aspect ratio control height */
+    }
+    
+    /* Compact keyboard */
+    .kbd {
+      gap: 3px;
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+    .kbd-row {
+      gap: 2px;
+    }
+    .key { 
+      font-size: 12px;
+      min-height: 36px; /* Smaller for mobile */
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .key.wide {
+      font-size: 10px;
+    }
+    
+    /* Mobile bottom sheet settings */
+    .settings-overlay {
+      display: block;
+    }
+    
+    .settings-panel {
+      display: none !important; /* Hide inline panel on mobile */
+    }
+    
+    .settings-sheet select {
+      padding: 12px 16px;
       font-size: 16px; /* Prevent iOS zoom */
-      min-height: 48px; /* iOS touch target */
+      min-height: 48px;
       border-radius: 8px;
       -webkit-appearance: none;
       appearance: none;
+      background: var(--tile-bg);
+      color: var(--fg);
+      border: 2px solid #333;
       background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f2f2f2' stroke-width='2'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
       background-repeat: no-repeat;
-      background-position: right 12px center;
+      background-position: right 16px center;
       background-size: 16px;
-      padding-right: 40px; /* Make room for custom arrow */
+      padding-right: 48px;
+      width: 100%;
+      box-sizing: border-box;
     }
+    
+    .settings-sheet select:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+    
+    .game-actions button {
+      min-width: 50px;
+      font-size: 11px;
+      padding: 6px 8px;
+      flex: 1;
+      max-width: 70px;
+    }
+    
+    .settings-toggle {
+      font-size: 12px;
+      padding: 6px 12px;
+      margin: 4px auto;
+      min-height: 36px;
+      border-radius: 6px;
+    }
+    
+    .controls-compact select {
+      padding: 6px 8px;
+      font-size: 14px;
+      min-height: 36px;
+      border-radius: 6px;
+    }
+    
     .controls-compact button {
-      padding: 10px 14px;
-      font-size: 14px;
-      min-height: 48px;
-      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      min-height: 36px;
+      border-radius: 6px;
     }
+    
     .controls-compact {
-      gap: 12px;
-      font-size: 14px;
-      justify-content: center;
-      padding: 12px 0;
-      flex-wrap: wrap;
-    }
-    .controls-compact label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      min-width: 120px; /* Ensure consistent sizing */
-    }
-    
-    /* Better hint styling */
-    .hint {
-      font-size: 14px;
-      text-align: center;
-      margin: 8px 0;
-      color: var(--muted);
-      padding: 8px;
-      background: rgba(255,255,255,0.02);
-      border-radius: 8px;
-    }
-    
-    /* Enhanced message display */
-    .msg { 
-      font-size: 16px; 
-      min-height: 36px; 
-      padding: 12px; 
-      background: rgba(255,255,255,0.05); 
-      border-radius: 8px;
-      margin: 8px 0;
-      text-align: center;
-      line-height: 1.4;
-    }
-    
-    /* Improved dialog for mobile */
-    .dialog { 
-      font-size: 16px; 
-      padding: 32px 24px;
-      margin: 20px;
-      max-height: 90vh;
-      border-radius: 16px;
-    }
-    .dialog .answer-word { 
-      font-size: 32px; 
-      margin: 20px 0;
-      letter-spacing: 3px;
-    }
-    .dialog button {
-      min-height: 52px;
-      font-size: 18px;
-      padding: 16px 24px;
-      border-radius: 12px;
-      margin-top: 24px;
-    }
-    
-    /* Enhanced keyboard */
-    .key { 
-      font-size: 16px;
-      min-height: 52px; /* Larger for better touch */
-      border-radius: 8px;
-      font-weight: 600;
-    }
-    .key.wide {
-      font-size: 14px; /* Slightly smaller for wide keys */
-    }
-    
-    /* Larger tiles for better visibility */
-    .tile { 
-      font-size: clamp(16px, 5vw, 24px);
-      border-radius: 8px;
-      min-height: 48px; /* Ensure minimum size */
-    }
-    
-    /* Enhanced error styling for mobile visibility */
-    .msg.error-shake {
-      background: #ff4444 !important;
-      color: white !important;
-      font-size: 18px !important;
-      padding: 16px !important;
-      border: 3px solid #ffffff !important;
-      box-shadow: 0 4px 20px rgba(255, 68, 68, 0.6) !important;
-      animation: shake 0.6s ease-in-out, flash 2.5s ease-in-out !important;
-      border-radius: 12px !important;
-      margin: 12px 0 !important;
-    }
-    
-    /* Enhanced animations */
-    @keyframes flash {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    
-    /* iOS specific improvements */
-    @supports (-webkit-touch-callout: none) {
-      body {
-        -webkit-overflow-scrolling: touch;
-      }
-      .controls, .dialog, .kbd {
-        -webkit-overflow-scrolling: touch;
-      }
-    }
-    
-    /* Enhanced stats for mobile */
-    .stats {
-      font-size: 14px;
       gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin: 8px 0;
+      font-size: 12px;
+      padding: 6px 0;
+    }
+    
+    .controls-compact label {
+      gap: 4px;
+      min-width: 100px;
+    }
+    
+    /* Compact messages and stats */
+    .hint {
+      font-size: 12px;
+      margin: 4px 0;
+      padding: 4px;
+      border-radius: 6px;
+    }
+    
+    .msg { 
+      font-size: 14px; 
+      min-height: 28px; 
+      padding: 8px; 
+      margin: 4px 0;
+      border-radius: 6px;
+    }
+    
+    .stats {
+      font-size: 12px;
+      gap: 6px;
+      margin: 4px 0;
     }
     .pill {
-      padding: 8px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-      white-space: nowrap;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+    }
+    
+    /* Compact dialogs */
+    .dialog { 
+      font-size: 14px; 
+      padding: 20px 16px;
+      margin: 10px;
+      border-radius: 12px;
+    }
+    .dialog .answer-word { 
+      font-size: 24px; 
+      margin: 12px 0;
+      letter-spacing: 2px;
+    }
+    .dialog button {
+      min-height: 42px;
+      font-size: 16px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+    
+    /* Error styling adjustments */
+    .msg.error-shake {
+      font-size: 14px !important;
+      padding: 10px !important;
+      border-radius: 8px !important;
+      margin: 6px 0 !important;
     }
   }
 </style>
@@ -391,6 +505,7 @@
       
       <button class="settings-toggle" id="settingsToggle">⚙️ Settings</button>
       
+      <!-- Keep old panel for desktop, hidden on mobile -->
       <div class="settings-panel" id="settingsPanel">
         <div class="controls-compact">
           <label>Length: <select id="lengthSelect"></select></label>
@@ -401,10 +516,34 @@
       <div class="hint">Type letters, then press Enter ↵</div>
     </div>
 
+    <!-- Bottom sheet overlay for mobile settings -->
+    <div class="settings-overlay" id="settingsOverlay">
+      <div class="settings-sheet" id="settingsSheet">
+        <div class="settings-sheet-header">
+          <div class="settings-sheet-title">⚙️ Game Settings</div>
+          <button class="settings-close-btn" id="settingsCloseBtn">×</button>
+        </div>
+        <div class="settings-sheet-content">
+          <div class="settings-group">
+            <div class="settings-label">Word Length</div>
+            <div class="settings-description">Choose how many letters each word contains</div>
+            <select id="lengthSelectMobile"></select>
+          </div>
+          <div class="settings-group">
+            <div class="settings-label">Category</div>
+            <div class="settings-description">Select the theme for your puzzle words</div>
+            <select id="categorySelectMobile"></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="stats" id="stats"></div>
 
-    <div id="board"></div>
-    <div class="msg" id="msg"></div>
+    <div class="game-container">
+      <div id="board"></div>
+      <div class="msg" id="msg"></div>
+    </div>
 
     <div class="kbd" id="kbd"></div>
   </div>
@@ -577,15 +716,50 @@ Using emergency fallback mode...`;
   lenSel.innerHTML = avail.map(l => `<option value="${l}">${l}</option>`).join('');
   lenSel.value = String(avail.includes(WORD_LEN) ? WORD_LEN : avail[0]);
 
+  // Mobile selectors (copy options to mobile selectors)
+  const lenSelMobile = document.getElementById('lengthSelectMobile');
+  const catSelMobile = document.getElementById('categorySelectMobile');
+  
+  lenSelMobile.innerHTML = lenSel.innerHTML;
+  lenSelMobile.value = lenSel.value;
+  
+  catSelMobile.innerHTML = catSel.innerHTML;
+  catSelMobile.value = catSel.value;
+
+  // Sync desktop and mobile selectors
+  function syncSelectors() {
+    lenSelMobile.value = lenSel.value;
+    catSelMobile.value = catSel.value;
+  }
+
   lenSel.addEventListener('change', async () => { 
     WORD_LEN = Number(lenSel.value); 
     await loadLists(); 
     newPuzzle(MODE); 
     updateStatsUI(); 
+    syncSelectors();
   });
   
   catSel.addEventListener('change', async () => { 
     CURRENT_CATEGORY = catSel.value; 
+    await loadLists(); 
+    newPuzzle(MODE); 
+    updateStatsUI(); 
+    syncSelectors();
+  });
+
+  // Mobile selector handlers
+  lenSelMobile.addEventListener('change', async () => { 
+    WORD_LEN = Number(lenSelMobile.value); 
+    lenSel.value = lenSelMobile.value; // Sync back to desktop
+    await loadLists(); 
+    newPuzzle(MODE); 
+    updateStatsUI(); 
+  });
+  
+  catSelMobile.addEventListener('change', async () => { 
+    CURRENT_CATEGORY = catSelMobile.value; 
+    catSel.value = catSelMobile.value; // Sync back to desktop
     await loadLists(); 
     newPuzzle(MODE); 
     updateStatsUI(); 
@@ -596,17 +770,81 @@ Using emergency fallback mode...`;
   document.getElementById('shareBtn').addEventListener('click', shareResult);
   document.getElementById('nameBtn').addEventListener('click', showNameDialog);
   
-  // Settings toggle functionality
-  document.getElementById('settingsToggle').addEventListener('click', () => {
-    const panel = document.getElementById('settingsPanel');
-    const toggle = document.getElementById('settingsToggle');
+  // Enhanced Settings toggle functionality with bottom sheet support
+  function isMobile() {
+    return window.innerWidth <= 768;
+  }
+
+  function openSettingsBottomSheet() {
+    const overlay = document.getElementById('settingsOverlay');
+    const sheet = document.getElementById('settingsSheet');
     
-    if (panel.classList.contains('open')) {
-      panel.classList.remove('open');
-      toggle.textContent = '⚙️ Settings';
+    overlay.classList.add('open');
+    
+    // Small delay to ensure overlay is visible before animating sheet
+    setTimeout(() => {
+      sheet.classList.add('open');
+    }, 50);
+    
+    // Prevent body scroll when sheet is open
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSettingsBottomSheet() {
+    const overlay = document.getElementById('settingsOverlay');
+    const sheet = document.getElementById('settingsSheet');
+    
+    sheet.classList.remove('open');
+    
+    setTimeout(() => {
+      overlay.classList.remove('open');
+      document.body.style.overflow = ''; // Re-enable body scroll
+    }, 300); // Wait for animation to complete
+  }
+
+  document.getElementById('settingsToggle').addEventListener('click', () => {
+    if (isMobile()) {
+      openSettingsBottomSheet();
     } else {
-      panel.classList.add('open');
-      toggle.textContent = '⚙️ Hide Settings';
+      // Desktop behavior - use collapsible panel
+      const panel = document.getElementById('settingsPanel');
+      const toggle = document.getElementById('settingsToggle');
+      
+      if (panel.classList.contains('open')) {
+        panel.classList.remove('open');
+        toggle.textContent = '⚙️ Settings';
+      } else {
+        panel.classList.add('open');
+        toggle.textContent = '⚙️ Hide Settings';
+      }
+    }
+  });
+
+  // Bottom sheet close handlers
+  document.getElementById('settingsCloseBtn').addEventListener('click', closeSettingsBottomSheet);
+  
+  // Close when clicking overlay background
+  document.getElementById('settingsOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'settingsOverlay') {
+      closeSettingsBottomSheet();
+    }
+  });
+
+  // Close on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('settingsOverlay');
+      if (overlay.classList.contains('open')) {
+        closeSettingsBottomSheet();
+      }
+    }
+  });
+
+  // Handle window resize to switch between mobile/desktop behavior
+  window.addEventListener('resize', () => {
+    const overlay = document.getElementById('settingsOverlay');
+    if (!isMobile() && overlay.classList.contains('open')) {
+      closeSettingsBottomSheet();
     }
   });
 
