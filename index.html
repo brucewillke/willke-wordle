@@ -361,11 +361,17 @@
     renderBoard(); updateKeyStates();
     const win = tiles.every(t => t==='correct');
 
-    console.log(`Guess ${GUESSES.length}: ${g}, Win: ${win}, Max: ${MAX_GUESSES}`);
+    console.log(`Guess ${GUESSES.length}: "${g}", Win: ${win}, Max: ${MAX_GUESSES}`);
 
-    if (win) { msg.textContent = 'You win! 🎉'; finalizeGame(true); return; }
+    if (win) { 
+      msg.textContent = 'You win! 🎉'; 
+      finalizeGame(true); 
+      return; 
+    }
+    
+    // Check if this was the last allowed guess
     if (GUESSES.length >= MAX_GUESSES) {
-      console.log(`Game over! Showing answer: ${ANSWER}`);
+      console.log(`Game over! Final guess count: ${GUESSES.length}, Max: ${MAX_GUESSES}, Answer: ${ANSWER}`);
       msg.textContent = `Out of guesses. The word was ${ANSWER.toUpperCase()}.`;
       finalizeGame(false);
       return;
@@ -378,14 +384,29 @@
     const won = rows.length>0 && scoreGuess(ANSWER, rows[rows.length-1]).every(x=>x==='correct');
     const attempts = won ? rows.length : 'X';
     const text = [
-      `${cfg.sharePrefix || 'wxrdle'} • ${WORD_LEN}-letter • ${MODE}`,
-      `Puzzle #${puzzleNumber(PUZZLE_ID)} • ${attempts}/${MAX_GUESSES}`,
+      `${cfg.sharePrefix || 'wxrdle • lite'} • ${WORD_LEN}-letter • ${MODE}`,
+      `Puzzle #${puzzleNumber(PUZZLE_ID)} • ${attempts}/${MAX_GUESSES} 🇺🇸`,
+      '',
       squares
     ].join('\n');
     try {
-      if (navigator.share) await navigator.share({ text });
-      else { await navigator.clipboard.writeText(text); msg.textContent = 'Copied result to clipboard ✅'; }
-    } catch { msg.textContent = 'Could not share.'; }
+      // Always try clipboard first, skip native share
+      await navigator.clipboard.writeText(text); 
+      msg.textContent = 'Copied result to clipboard ✅ Ready to paste!'; 
+    } catch { 
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        msg.textContent = 'Copied result to clipboard ✅ Ready to paste!';
+      } catch {
+        msg.textContent = 'Could not copy to clipboard. Try selecting and copying manually.';
+      }
+    }
   }
 
   // physical keyboard
