@@ -1,10 +1,10 @@
 {
-  "title": "wxrdle lite",
+  "title": "1776 Wordle",
   "defaultWordLength": 5,
   "maxGuesses": 6,
   "mode": "daily",
   "dailyEpoch": "2024-01-01",
-  "publicSeed": "your-public-seed",
-  "sharePrefix": "wxrdle • lite",
+  "publicSeed": "revolutionary-war-1776-america",
+  "sharePrefix": "1776 Wordle",
   "statsEnabled": true
 }

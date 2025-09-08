@@ -275,12 +275,15 @@
       const rnd = Math.random().toString(36).slice(2,10);
       pid = `rnd-${rnd}-${WORD_LEN}`;
       idx = seedIndex(`${rnd}:${WORD_LEN}`, ANSWERS.length);
+      console.log(`Random mode: rnd=${rnd}, idx=${idx}, total=${ANSWERS.length}`);
     } else {
       pid = getDailyPuzzleId();
       idx = seedIndex(`${cfg.publicSeed}:${pid}`, ANSWERS.length);
+      console.log(`Daily mode: pid=${pid}, seed=${cfg.publicSeed}, idx=${idx}, total=${ANSWERS.length}`);
     }
     PUZZLE_ID = pid;
     ANSWER = ANSWERS[idx];
+    console.log(`Selected answer: ${ANSWER} (index ${idx})`);
     meta.textContent = ` • ${mode} • ${WORD_LEN}-letter • #${puzzleNumber(pid)}`;
     msg.textContent = '';
     renderBoard(); updateKeyStates();
@@ -379,33 +382,52 @@
   }
 
   async function shareResult() {
+    if (GUESSES.length === 0) {
+      msg.textContent = 'Play a game first before sharing!';
+      return;
+    }
+    
     const rows = GUESSES.slice(0, Math.min(GUESSES.length, MAX_GUESSES));
     const squares = rows.map(g => scoreGuess(ANSWER,g).map(x => x==='correct'?'🟩': x==='present'?'🟨':'⬛').join('')).join('\n');
     const won = rows.length>0 && scoreGuess(ANSWER, rows[rows.length-1]).every(x=>x==='correct');
     const attempts = won ? rows.length : 'X';
     const text = [
-      `${cfg.sharePrefix || 'wxrdle • lite'} • ${WORD_LEN}-letter • ${MODE}`,
+      `${cfg.sharePrefix || '1776 Wordle'} • ${WORD_LEN}-letter • ${MODE}`,
       `Puzzle #${puzzleNumber(PUZZLE_ID)} • ${attempts}/${MAX_GUESSES} 🇺🇸`,
       '',
       squares
     ].join('\n');
+    
+    console.log('Sharing text:', text);
+    
     try {
-      // Always try clipboard first, skip native share
-      await navigator.clipboard.writeText(text); 
-      msg.textContent = 'Copied result to clipboard ✅ Ready to paste!'; 
-    } catch { 
-      // Fallback for older browsers
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        msg.textContent = 'Copied result to clipboard ✅ Ready to paste!';
-      } catch {
-        msg.textContent = 'Could not copy to clipboard. Try selecting and copying manually.';
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text); 
+        msg.textContent = 'Copied result to clipboard ✅ Ready to paste!'; 
+        return;
       }
+      
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      if (document.execCommand('copy')) {
+        msg.textContent = 'Copied result to clipboard ✅ Ready to paste!';
+      } else {
+        throw new Error('execCommand failed');
+      }
+      document.body.removeChild(textArea);
+      
+    } catch (err) {
+      console.error('Share failed:', err);
+      msg.textContent = `Share failed. Try manually copying: ${text}`;
     }
   }
 
