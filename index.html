@@ -220,15 +220,19 @@
   function renderBoard() {
     board.style.setProperty('--len', WORD_LEN);
     board.innerHTML = '';
-    for (let r=0; r<MAX_GUESSES; r++) {
-      const row = document.createElement('div'); row.className = 'row';
+    for (let r = 0; r < MAX_GUESSES; r++) {
+      const row = document.createElement('div'); 
+      row.className = 'row';
       const guess = GUESSES[r] || '';
-      const isDone = r < GUESSES.length && guess.length === WORD_LEN;
+      const isDone = r < GUESSES.length - 1 || (r < GUESSES.length && guess.length === WORD_LEN && !LOCKED);
       const tiles = isDone ? scoreGuess(ANSWER, guess) : [];
-      for (let c=0;c<WORD_LEN;c++) {
-        const t = document.createElement('div'); t.className='tile';
+      
+      for (let c = 0; c < WORD_LEN; c++) {
+        const t = document.createElement('div'); 
+        t.className = 'tile';
         t.textContent = guess[c] ? guess[c].toUpperCase() : '';
-        if (isDone) t.classList.add(tiles[c]); row.appendChild(t);
+        if (isDone && guess.length === WORD_LEN) t.classList.add(tiles[c]); 
+        row.appendChild(t);
       }
       board.appendChild(row);
     }
@@ -301,17 +305,36 @@
   function typeChar(ch) {
     if (LOCKED) return;
     if (!/^[a-z]$/i.test(ch)) return;
-    if (GUESSES.length===0 || GUESSES[GUESSES.length-1].length===WORD_LEN) {
-      if (GUESSES.length>=MAX_GUESSES) return;
+    
+    // Always ensure we have a current guess row
+    if (GUESSES.length === 0) {
       GUESSES.push('');
     }
+    
+    // If current row is full, create new row (unless we're at max guesses)
+    if (GUESSES[GUESSES.length-1].length === WORD_LEN) {
+      if (GUESSES.length >= MAX_GUESSES) return;
+      GUESSES.push('');
+    }
+    
     const i = GUESSES.length-1;
-    if (GUESSES[i].length < WORD_LEN) { GUESSES[i]+=ch.toLowerCase(); renderBoard(); }
+    if (GUESSES[i].length < WORD_LEN) { 
+      GUESSES[i] += ch.toLowerCase(); 
+      renderBoard(); 
+    }
   }
   function backspace() {
-    if (LOCKED || GUESSES.length===0) return;
-    const i = GUESSES.length-1; if (GUESSES[i].length===0) return;
-    GUESSES[i] = GUESSES[i].slice(0,-1); renderBoard();
+    if (LOCKED || GUESSES.length === 0) return;
+    const i = GUESSES.length - 1;
+    if (GUESSES[i].length === 0) {
+      // If current row is empty, remove it if it's not the only row
+      if (GUESSES.length > 1) {
+        GUESSES.pop();
+      }
+      return;
+    }
+    GUESSES[i] = GUESSES[i].slice(0, -1);
+    renderBoard();
   }
 
   function finalizeGame(won) {
@@ -354,15 +377,27 @@
   }
 
   function submitGuess() {
-    if (LOCKED || GUESSES.length===0) return;
-    const i = GUESSES.length-1;
+    if (LOCKED || GUESSES.length === 0) return;
+    const i = GUESSES.length - 1;
     const g = GUESSES[i];
-    if (g.length !== WORD_LEN) { msg.textContent = 'Not enough letters.'; return; }
-    if (!ALLOWED.has(g)) { msg.textContent = 'Not in word list.'; return; }
+    
+    // Must have exactly WORD_LEN letters
+    if (g.length !== WORD_LEN) { 
+      msg.textContent = 'Not enough letters.'; 
+      return; 
+    }
+    
+    // Must be a valid dictionary word
+    if (!ALLOWED.has(g)) { 
+      msg.textContent = 'Not in word list.'; 
+      return; 
+    }
 
+    // Score the guess and update display
     const tiles = scoreGuess(ANSWER, g);
-    renderBoard(); updateKeyStates();
-    const win = tiles.every(t => t==='correct');
+    renderBoard(); 
+    updateKeyStates();
+    const win = tiles.every(t => t === 'correct');
 
     console.log(`Guess ${GUESSES.length}: "${g}", Win: ${win}, Max: ${MAX_GUESSES}`);
 
@@ -379,6 +414,9 @@
       finalizeGame(false);
       return;
     }
+    
+    // Clear message for next guess
+    msg.textContent = '';
   }
 
   async function shareResult() {
