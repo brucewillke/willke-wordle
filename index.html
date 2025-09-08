@@ -392,8 +392,7 @@
     const won = rows.length>0 && scoreGuess(ANSWER, rows[rows.length-1]).every(x=>x==='correct');
     const attempts = won ? rows.length : 'X';
     const text = [
-      `${cfg.sharePrefix || '1776 Wordle'} • ${WORD_LEN}-letter • ${MODE}`,
-      `Puzzle #${puzzleNumber(PUZZLE_ID)} • ${attempts}/${MAX_GUESSES} 🇺🇸`,
+      `1776 Wordle ${puzzleNumber(PUZZLE_ID)} ${attempts}/${MAX_GUESSES}`,
       '',
       squares
     ].join('\n');
