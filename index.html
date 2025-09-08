@@ -699,59 +699,87 @@ Try refreshing the page or contact the site administrator.`;
     
     console.log('Dialog setup complete'); // Debug
     
-    // Mobile fallback - Create GIANT notification instead of alert
-    console.log('Creating custom mobile game notification'); // Debug
+    // Mobile fallback - Create GIANT full-screen notification 
+    console.log('Creating GIANT mobile game completion notification'); // Debug
     setTimeout(() => {
       const alertMessage = won ? 
-        `🎉 You won! The word was ${ANSWER.toUpperCase()}. Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!` :
-        `😔 Game Over! The word was ${ANSWER.toUpperCase()}.`;
+        `🎉 CONGRATULATIONS${personalGreeting}!<br><br>You solved today's ${catName} Wordle!<br><br><strong>${ANSWER.toUpperCase()}</strong><br><br>Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!` :
+        `😔 GAME OVER${personalGreeting}<br><br>Better luck next time!<br><br>The word was:<br><strong>${ANSWER.toUpperCase()}</strong>`;
       
       const notification = document.createElement('div');
       notification.id = 'mobile-game-notification';
       notification.style.cssText = `
         position: fixed !important;
-        top: 20% !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        background: ${won ? '#4CAF50' : '#f44336'} !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: ${won ? 'rgba(76, 175, 80, 0.96)' : 'rgba(244, 67, 54, 0.96)'} !important;
         color: white !important;
-        padding: 25px 35px !important;
-        border-radius: 20px !important;
-        font-size: 22px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 24px !important;
         font-weight: bold !important;
-        z-index: 10000 !important;
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.8) !important;
-        border: 4px solid white !important;
+        z-index: 99999 !important;
         text-align: center !important;
-        max-width: 85vw !important;
-        word-wrap: break-word !important;
-        line-height: 1.4 !important;
+        padding: 40px !important;
+        box-sizing: border-box !important;
+        animation: slideIn 0.5s ease-out !important;
       `;
-      notification.innerHTML = alertMessage;
+      
+      // Add slide-in animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from { opacity: 0; transform: scale(0.8); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      notification.innerHTML = `
+        <div style="
+          background: white; 
+          color: ${won ? '#4CAF50' : '#f44336'}; 
+          padding: 40px; 
+          border-radius: 25px; 
+          max-width: 90vw; 
+          font-size: 22px;
+          border: 6px solid ${won ? '#4CAF50' : '#f44336'};
+          box-shadow: 0 0 60px rgba(0,0,0,0.8);
+          line-height: 1.5;
+        ">
+          ${alertMessage}
+          <div style="margin-top: 30px; font-size: 18px; background: ${won ? '#4CAF50' : '#f44336'}; color: white; padding: 15px; border-radius: 15px;">
+            🎯 TAP ANYWHERE TO CONTINUE 🎯
+          </div>
+        </div>
+      `;
       
       // Remove any existing game notifications
       const existing = document.getElementById('mobile-game-notification');
       if (existing) existing.remove();
       
       document.body.appendChild(notification);
-      console.log('Mobile game notification added to DOM');
+      console.log('GIANT mobile game notification added to DOM');
       
-      // Add click to close
+      // Click to close
       notification.addEventListener('click', () => {
         notification.remove();
-        console.log('Mobile game notification clicked and removed');
+        console.log('Giant mobile game notification clicked and removed');
       });
       
-      // Auto-remove after 8 seconds
+      // Auto-remove after 10 seconds
       setTimeout(() => {
         if (notification && notification.parentNode) {
           notification.remove();
-          console.log('Mobile game notification auto-removed');
+          console.log('Giant mobile game notification auto-removed');
         }
-      }, 8000);
+      }, 10000);
       
-      console.log('Game dialog custom notification shown successfully');
-    }, 300);
+      console.log('Giant game completion notification shown successfully');
+    }, 500);
   }
 
   function showNameDialog() {
@@ -838,49 +866,84 @@ Try refreshing the page or contact the site administrator.`;
     msg.style.transform = 'translateZ(0)';
     msg.offsetHeight; // Force reflow
     
-    // Mobile fallback - Create a GIANT notification overlay instead of alert
-    console.log('Creating custom mobile notification'); // Debug
+    // SUPER PROMINENT mobile notification - takes up most of screen
+    console.log('Creating GIANT mobile notification overlay'); // Debug
     const notification = document.createElement('div');
     notification.id = 'mobile-notification';
     notification.style.cssText = `
       position: fixed !important;
-      top: 50% !important;
-      left: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      background: #ff4444 !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      background: rgba(255, 68, 68, 0.95) !important;
       color: white !important;
-      padding: 20px 30px !important;
-      border-radius: 15px !important;
-      font-size: 20px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 28px !important;
       font-weight: bold !important;
-      z-index: 9999 !important;
-      box-shadow: 0 0 30px rgba(255, 68, 68, 0.8) !important;
-      border: 3px solid white !important;
+      z-index: 99999 !important;
       text-align: center !important;
-      max-width: 80vw !important;
-      word-wrap: break-word !important;
+      padding: 40px !important;
+      box-sizing: border-box !important;
+      animation: pulse 1s infinite !important;
     `;
-    notification.textContent = message;
+    
+    // Add pulsing animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0% { opacity: 0.8; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+        100% { opacity: 0.8; transform: scale(1); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    notification.innerHTML = `
+      <div style="
+        background: white; 
+        color: #ff4444; 
+        padding: 30px; 
+        border-radius: 20px; 
+        max-width: 90vw; 
+        font-size: 24px;
+        border: 5px solid #ff4444;
+        box-shadow: 0 0 50px rgba(0,0,0,0.8);
+      ">
+        ${message}
+        <div style="margin-top: 20px; font-size: 16px; color: #666;">
+          Tap anywhere to continue
+        </div>
+      </div>
+    `;
     
     // Remove any existing notifications
     const existing = document.getElementById('mobile-notification');
     if (existing) existing.remove();
     
     document.body.appendChild(notification);
-    console.log('Mobile notification added to DOM');
+    console.log('GIANT mobile notification added to DOM');
     
-    // Auto-remove after 3 seconds
+    // Click to dismiss
+    notification.addEventListener('click', () => {
+      notification.remove();
+      console.log('Giant mobile notification dismissed by click');
+    });
+    
+    // Auto-remove after 4 seconds (longer for readability)
     setTimeout(() => {
       if (notification && notification.parentNode) {
         notification.remove();
-        console.log('Mobile notification removed');
+        console.log('Giant mobile notification auto-removed');
       }
-    }, 3000);
+    }, 4000);
     
     setTimeout(() => {
       msg.classList.remove('error-shake');
       msg.style.cssText = ''; // Reset all styles at once
-    }, 4000); // Longer duration for mobile
+    }, 5000); // Longer duration for mobile
   }
 
   function submitGuess() {
