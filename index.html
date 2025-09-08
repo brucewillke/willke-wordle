@@ -258,9 +258,9 @@
   button.primary { background: var(--accent); color: #081424; border-color: transparent; }
   button:disabled { opacity: .6; cursor: not-allowed; }
   .kbd { display: grid; gap: 4px; margin-top: 6px; flex-shrink: 0; }
-  .kbd-row { display: grid; gap: 4px; grid-template-columns: repeat(20, 1fr); }
+  .kbd-row { display: flex; gap: 4px; justify-content: center; align-items: center; }
   .key { 
-    grid-column: span 2; 
+    min-width: 43px; /* Consistent width for letter keys */
     min-height: 42px; /* Smaller but still touchable */
     touch-action: manipulation; /* Prevents zoom on double-tap */
     -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
@@ -271,9 +271,13 @@
     transition: all 0.1s ease; /* Fast visual feedback */
     position: relative;
     overflow: hidden;
+    font-weight: 700;
   }
-  .key.wide { grid-column: span 3; }
-  .key.extra-wide { grid-column: span 4; } /* For Enter key */
+  .key.wide { 
+    min-width: 65px; /* Wider for ENTER and DELETE */
+    font-size: 12px;
+    font-weight: 700;
+  }
   .key:active {
     transform: scale(0.95);
     background-color: #333;
@@ -299,7 +303,6 @@
     height: 100px;
   }
   .key.wide { grid-column: span 3; }
-  .key.extra-wide { grid-column: span 4; } /* For Enter key */
   .key.state-absent { background: var(--absent); border-color: var(--absent); }
   .key.state-present { background: var(--present); border-color: var(--present); color: #111; }
   .key.state-correct { background: var(--correct); border-color: var(--correct); }
@@ -381,6 +384,7 @@
     .key { 
       font-size: 12px;
       min-height: 36px; /* Smaller for mobile */
+      min-width: 32px;
       border-radius: 4px;
       font-weight: 500;
       transition: all 0.08s ease; /* Very fast response */
@@ -391,10 +395,8 @@
       transition: all 0.05s ease;
     }
     .key.wide {
+      min-width: 50px;
       font-size: 10px;
-    }
-    .key.extra-wide {
-      font-size: 9px;
       font-weight: 700;
     }
     
@@ -905,71 +907,133 @@ Using emergency fallback mode...`;
 
   function renderKeyboard() {
     kbd.innerHTML = '';
-    for (const r of rows) {
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const r = rows[rowIndex];
       const row = document.createElement('div'); 
       row.className = 'kbd-row';
-      for (const ch of r) {
-        const b = document.createElement('button'); 
-        b.className = 'key'; 
-        
-        // Special sizing for different keys
-        if (ch==='↵') {
-          b.classList.add('extra-wide'); // Make Enter larger
-          b.textContent = 'ENTER';
-        } else if (ch==='⌫') {
-          b.classList.add('wide'); // Keep Delete standard wide
-          b.textContent = '⌫';
-        } else {
-          b.textContent = ch;
-        }
-        
-        // Enhanced event handling for better responsiveness
-        let isPressed = false;
-        
-        // Mouse events
-        b.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          isPressed = true;
-          addRippleEffect(b);
-        });
-        
-        b.addEventListener('mouseup', () => {
-          if (isPressed) {
-            isPressed = false;
-            handleKeyPress(ch);
-          }
-        });
-        
-        b.addEventListener('mouseleave', () => {
-          isPressed = false;
-        });
-        
-        // Touch events for mobile
-        b.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          isPressed = true;
-          addRippleEffect(b);
+      
+      // Special handling for bottom row to get proper Wordle layout
+      if (rowIndex === 2) {
+        // Bottom row: ENTER + letters + DELETE
+        for (const ch of r) {
+          const b = document.createElement('button'); 
+          b.className = 'key';
           
-          // Haptic feedback on supported devices
-          if (navigator.vibrate) {
-            navigator.vibrate(10);
+          if (ch === '↵') {
+            b.classList.add('wide');
+            b.textContent = 'ENTER';
+            b.style.marginRight = '6px'; // Add space after ENTER
+          } else if (ch === '⌫') {
+            b.classList.add('wide');
+            b.textContent = '⌫';
+            b.style.marginLeft = '6px'; // Add space before DELETE
+          } else {
+            b.textContent = ch.toUpperCase();
           }
-        }, { passive: false });
-        
-        b.addEventListener('touchend', (e) => {
-          e.preventDefault();
-          if (isPressed) {
+          
+          // Enhanced event handling for better responsiveness
+          let isPressed = false;
+          
+          // Mouse events
+          b.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isPressed = true;
+            addRippleEffect(b);
+          });
+          
+          b.addEventListener('mouseup', () => {
+            if (isPressed) {
+              isPressed = false;
+              handleKeyPress(ch);
+            }
+          });
+          
+          b.addEventListener('mouseleave', () => {
             isPressed = false;
-            handleKeyPress(ch);
-          }
-        }, { passive: false });
-        
-        b.addEventListener('touchcancel', () => {
-          isPressed = false;
-        });
-        
-        row.appendChild(b);
+          });
+          
+          // Touch events for mobile
+          b.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isPressed = true;
+            addRippleEffect(b);
+            
+            // Haptic feedback on supported devices
+            if (navigator.vibrate) {
+              navigator.vibrate(10);
+            }
+          }, { passive: false });
+          
+          b.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (isPressed) {
+              isPressed = false;
+              handleKeyPress(ch);
+            }
+          }, { passive: false });
+          
+          b.addEventListener('touchcancel', () => {
+            isPressed = false;
+          });
+          
+          row.appendChild(b);
+        }
+      } else {
+        // Top two rows - normal layout
+        for (const ch of r) {
+          const b = document.createElement('button'); 
+          b.className = 'key';
+          b.textContent = ch.toUpperCase();
+          
+          // Enhanced event handling for better responsiveness
+          let isPressed = false;
+          
+          // Mouse events
+          b.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isPressed = true;
+            addRippleEffect(b);
+          });
+          
+          b.addEventListener('mouseup', () => {
+            if (isPressed) {
+              isPressed = false;
+              handleKeyPress(ch);
+            }
+          });
+          
+          b.addEventListener('mouseleave', () => {
+            isPressed = false;
+          });
+          
+          // Touch events for mobile
+          b.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isPressed = true;
+            addRippleEffect(b);
+            
+            // Haptic feedback on supported devices
+            if (navigator.vibrate) {
+              navigator.vibrate(10);
+            }
+          }, { passive: false });
+          
+          b.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (isPressed) {
+              isPressed = false;
+              handleKeyPress(ch);
+            }
+          }, { passive: false });
+          
+          b.addEventListener('touchcancel', () => {
+            isPressed = false;
+          });
+          
+          row.appendChild(b);
+        }
       }
+      
       kbd.appendChild(row);
     }
   }
