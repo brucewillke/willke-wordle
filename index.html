@@ -59,19 +59,19 @@
   .key.state-absent { background: var(--absent); border-color: var(--absent); }
   .key.state-present { background: var(--present); border-color: var(--present); color: #111; }
   .key.state-correct { background: var(--correct); border-color: var(--correct); }
-  .msg { min-height: 22px; color: var(--muted); margin: 6px 0 2px; }
+  .msg { min-height: 22px; color: var(--muted); margin: 6px 0 2px; font-weight: 500; }
   a { color: var(--accent); text-decoration: none; }
   .title { font-weight: 800; letter-spacing: .5px; }
   .hint { color: var(--muted); font-size: 12px; }
   .stats { display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--muted); }
   .pill { background:#1b1b1b; border:1px solid #333; border-radius:999px; padding:4px 8px; color:#ddd; }
-  .dialog-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:1000; }
-  .dialog { background:var(--bg); border:2px solid #333; border-radius:12px; padding:24px; max-width:400px; width:90%; text-align:center; }
+  .dialog-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; box-sizing:border-box; }
+  .dialog { background:var(--bg); border:2px solid #333; border-radius:12px; padding:24px; max-width:400px; width:90%; text-align:center; max-height:80vh; overflow-y:auto; }
   .dialog h2 { margin:0 0 16px; font-size:28px; }
   .dialog .win { color:var(--correct); }
   .dialog .lose { color:#ff6b6b; }
   .dialog .answer-word { font-size:32px; font-weight:800; margin:16px 0; letter-spacing:2px; }
-  .dialog button { margin-top:20px; padding:12px 24px; font-size:16px; }
+  .dialog button { margin-top:20px; padding:12px 24px; font-size:16px; min-height:48px; }
   .dialog input { 
     margin:10px 0; padding:8px 12px; border:1px solid #333; border-radius:6px; 
     background:var(--tile-bg); color:var(--fg); font-size:16px; width:200px;
@@ -81,6 +81,15 @@
   .name-display { color:var(--accent); font-weight:600; }
   .error-shake { animation: shake 0.5s ease-in-out; }
   @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  
+  /* Mobile-specific improvements */
+  @media (max-width: 768px) {
+    .msg { font-size: 14px; min-height: 30px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; }
+    .dialog { font-size: 16px; }
+    .dialog .answer-word { font-size: 28px; }
+    .key { font-size: 14px; }
+    .tile { font-size: clamp(14px, 4vw, 20px); }
+  }
 </style>
 </head>
 <body>
@@ -485,7 +494,7 @@
         <p>You solved today's ${catName} Wordle!</p>
         <div class="answer-word">${ANSWER.toUpperCase()}</div>
         <p>Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!</p>
-        <button onclick="this.closest('.dialog-overlay').remove()">Continue</button>
+        <button onclick="this.closest('.dialog-overlay').remove()" style="font-size:18px; padding:12px 24px;">Continue</button>
       `;
     } else {
       dialog.innerHTML = `
@@ -493,12 +502,17 @@
         <p>Better luck next time!</p>
         <div class="answer-word">${ANSWER.toUpperCase()}</div>
         <p>The word was <strong>${ANSWER.toUpperCase()}</strong></p>
-        <button onclick="this.closest('.dialog-overlay').remove()">Try Again Tomorrow</button>
+        <button onclick="this.closest('.dialog-overlay').remove()" style="font-size:18px; padding:12px 24px;">Try Again Tomorrow</button>
       `;
     }
     
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
+    
+    // Ensure dialog is visible on mobile
+    setTimeout(() => {
+      dialog.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
     
     // Close on overlay click
     overlay.addEventListener('click', (e) => {
@@ -515,6 +529,18 @@
       }
     };
     document.addEventListener('keydown', closeOnEscape);
+    
+    // Auto-close after 10 seconds if user doesn't interact (mobile fallback)
+    const autoClose = setTimeout(() => {
+      if (document.body.contains(overlay)) {
+        overlay.remove();
+      }
+    }, 10000);
+    
+    // Cancel auto-close if user clicks
+    overlay.addEventListener('click', () => {
+      clearTimeout(autoClose);
+    });
   }
 
   function showNameDialog() {
@@ -581,9 +607,11 @@
   function showErrorMessage(message) {
     msg.textContent = message;
     msg.classList.add('error-shake');
+    msg.style.color = '#ff6b6b'; // Make error more visible
     setTimeout(() => {
       msg.classList.remove('error-shake');
-    }, 500);
+      msg.style.color = 'var(--muted)'; // Reset color
+    }, 2000); // Longer duration for mobile
   }
 
   function submitGuess() {
@@ -599,10 +627,14 @@
     
     // Must be a valid dictionary word
     if (!ALLOWED.has(g)) { 
-      showErrorMessage(`That's not a word! "${g.toUpperCase()}" cleared.`);
-      // Clear the invalid word
+      showErrorMessage(`"${g.toUpperCase()}" is not a valid word! Clearing...`);
+      // Clear the invalid word immediately and re-render
       GUESSES[i] = '';
       renderBoard();
+      // Force a brief pause to show the error message
+      setTimeout(() => {
+        renderBoard(); // Re-render to ensure UI is updated
+      }, 100);
       return; 
     }
 
@@ -689,9 +721,31 @@
       return;
     }
     
-    if (e.key==='Enter') submitGuess();
-    else if (e.key==='Backspace') backspace();
+    if (e.key==='Enter') {
+      e.preventDefault(); // Prevent form submission on mobile
+      submitGuess();
+    }
+    else if (e.key==='Backspace') {
+      e.preventDefault(); // Prevent navigation on mobile
+      backspace();
+    }
     else if (/^[a-z]$/i.test(e.key)) typeChar(e.key);
+  });
+
+  // Mobile-specific touch event handling
+  let touchStartY = 0;
+  let touchEndY = 0;
+  
+  document.addEventListener('touchstart', (e) => {
+    touchStartY = e.changedTouches[0].screenY;
+  });
+  
+  document.addEventListener('touchend', (e) => {
+    touchEndY = e.changedTouches[0].screenY;
+    // Prevent pull-to-refresh on mobile
+    if (touchStartY < touchEndY) {
+      e.preventDefault();
+    }
   });
 
   // boot
