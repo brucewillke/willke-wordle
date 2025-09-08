@@ -4,8 +4,14 @@
 <meta charset="utf-8" />
 <meta
   name="viewport"
-  content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no"
 />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wordle Wonder">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#111111">
+<link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE4MCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiBmaWxsPSIjMTExIiByeD0iMzAiLz4KPHN2ZyB4PSI0MCIgeT0iNDAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj4KPHN2ZyB4PSIwIiB5PSIwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCI+CjxyZWN0IHg9IjUiIHk9IjUiIHdpZHRoPSIyNSIgaGVpZ2h0PSIyNSIgZmlsbD0iIzUzOGQ0ZSIgcng9IjMiLz4KPHJlY3QgeD0iMzUiIHk9IjUiIHdpZHRoPSIyNSIgaGVpZ2h0PSIyNSIgZmlsbD0iI2I1OWYzYiIgcng9IjMiLz4KPHJlY3QgeD0iNjUiIHk9IjUiIHdpZHRoPSIyNSIgaGVpZ2h0PSIyNSIgZmlsbD0iIzNhM2EzYyIgcng9IjMiLz4KPHRleHQgeD0iNTAiIHk9Ijc1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2YyZjJmMiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V29yZGxlPC90ZXh0Pgo8L3N2Zz4KPC9zdmc+Cjwvc3ZnPgo=">
 <title>WillkeWorld Wordle Wonder</title>
 <style>
   :root {
@@ -23,28 +29,109 @@
     margin: 0; background: var(--bg); color: var(--fg);
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
     display: grid; grid-template-rows: auto 1fr auto;
+    /* iOS and mobile optimizations */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior: none; /* Prevent overscroll bounce */
+    position: fixed; /* Prevent address bar issues on iOS */
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
   }
   header, footer { padding: 10px 14px; border-bottom: 1px solid #222; }
   footer { border-top: 1px solid #222; border-bottom: none; color: var(--muted); font-size: 12px; }
+  
+  main {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    height: 100%;
+    position: relative;
+  }
+  
   .wrap { max-width: 560px; margin: 0 auto; padding: 12px; }
   .row { display: grid; gap: 4px; grid-template-columns: repeat(var(--len), 1fr); margin: 4px 0; }
   .tile {
     aspect-ratio: 1 / 1; background: var(--tile-bg); border: 2px solid #333;
-    display: grid; place-items: center; font-weight: 700; font-size: clamp(16px, 3.5vw, 24px);
-    text-transform: uppercase; border-radius: 6px;
+    display: grid; place-items: center; font-weight: 700; font-size: clamp(18px, 4vw, 28px);
+    text-transform: uppercase; border-radius: 8px;
+    touch-action: manipulation; /* Prevent zoom on touch */
+    user-select: none; /* Prevent text selection */
+    -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
   }
   .tile.absent { background: var(--absent); border-color: var(--absent); }
   .tile.present { background: var(--present); border-color: var(--present); color: #111; }
   .tile.correct { background: var(--correct); border-color: var(--correct); }
   .controls { 
-    display: flex; gap: 8px; margin: 10px 0 4px; align-items: center; flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 10px 0 4px;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   }
+  .controls-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .controls-compact {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .controls-compact select {
+    padding: 4px 6px;
+    font-size: 12px;
+    min-height: 32px;
+  }
+  .controls-compact button {
+    padding: 4px 8px;
+    font-size: 11px;
+    min-height: 32px;
+    white-space: nowrap;
+  }
+  .game-actions button {
+    flex: 1;
+    min-width: 80px;
+  }
+  .settings-toggle {
+    background: var(--accent);
+    color: #081424;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    margin: 4px 0;
+    display: block;
+    width: fit-content;
+    margin: 4px auto;
+  }
+  .settings-panel {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    max-height: 0;
+  }
+  .settings-panel.open {
+    max-height: 200px;
+  }
   button, select {
-    background: #1b1b1b; color: var(--fg); border: 1px solid #333; border-radius: 6px;
-    padding: 8px 10px; cursor: pointer; font-weight: 600;
-    min-height: 44px; /* iOS recommended touch target size */
+    background: #1b1b1b; color: var(--fg); border: 1px solid #333; border-radius: 8px;
+    padding: 12px 16px; cursor: pointer; font-weight: 600;
+    min-height: 48px; /* iOS recommended touch target size */
     touch-action: manipulation; /* Prevents zoom on double-tap */
+    -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
+    -webkit-appearance: none; /* Remove iOS default styling */
+    appearance: none; /* Standard property for compatibility */
+    user-select: none; /* Prevent text selection */
+    font-size: 16px; /* Prevent iOS zoom on input focus */
   }
   button.primary { background: var(--accent); color: #081424; border-color: transparent; }
   button:disabled { opacity: .6; cursor: not-allowed; }
@@ -52,8 +139,13 @@
   .kbd-row { display: grid; gap: 6px; grid-template-columns: repeat(20, 1fr); }
   .key { 
     grid-column: span 2; 
-    min-height: 44px; /* Better touch targets */
+    min-height: 48px; /* Larger touch targets for mobile */
     touch-action: manipulation; /* Prevents zoom on double-tap */
+    -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
+    font-size: 16px; /* Better readability on mobile */
+    border-radius: 8px; /* Larger rounded corners for mobile */
+    user-select: none; /* Prevent text selection */
+    cursor: pointer;
   }
   .key.wide { grid-column: span 3; }
   .key.state-absent { background: var(--absent); border-color: var(--absent); }
@@ -73,10 +165,14 @@
   .dialog .answer-word { font-size:32px; font-weight:800; margin:16px 0; letter-spacing:2px; }
   .dialog button { margin-top:20px; padding:12px 24px; font-size:16px; min-height:48px; }
   .dialog input { 
-    margin:10px 0; padding:8px 12px; border:1px solid #333; border-radius:6px; 
-    background:var(--tile-bg); color:var(--fg); font-size:16px; width:200px;
+    margin:10px 0; padding:12px 16px; border:1px solid #333; border-radius:8px; 
+    background:var(--tile-bg); color:var(--fg); width:240px;
     /* Prevent zoom on iOS when focusing inputs */
-    font-size: max(16px, 1em);
+    font-size: 16px; /* Must be 16px+ to prevent iOS zoom */
+    -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
+    -webkit-appearance: none; /* Remove iOS default styling */
+    appearance: none; /* Standard property for compatibility */
+    touch-action: manipulation; /* Prevent zoom on touch */
   }
   .name-display { color:var(--accent); font-weight:600; }
   .error-shake { animation: shake 0.5s ease-in-out; }
@@ -84,26 +180,191 @@
   
   /* Mobile-specific improvements */
   @media (max-width: 768px) {
-    .msg { font-size: 14px; min-height: 30px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; }
-    .dialog { font-size: 16px; }
-    .dialog .answer-word { font-size: 28px; }
-    .key { font-size: 14px; }
-    .tile { font-size: clamp(14px, 4vw, 20px); }
-    
-    /* Force error message visibility on mobile */
-    .msg.error-shake {
-      background: #ff6b6b !important;
-      color: white !important;
-      font-size: 16px !important;
-      padding: 12px !important;
-      border: 3px solid #ffffff !important;
-      box-shadow: 0 0 20px rgba(255, 107, 107, 0.8) !important;
-      animation: shake 0.5s ease-in-out, flash 2s ease-in-out !important;
+    /* Enhanced mobile viewport */
+    body {
+      -webkit-text-size-adjust: 100%; /* Prevent text size adjustment on iOS */
+      -ms-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      -webkit-touch-callout: none; /* Disable callout on iOS */
+      -webkit-user-select: none; /* Disable text selection */
+      user-select: none;
     }
     
+    /* Improved touch targets */
+    .controls {
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin: 6px 0 6px;
+      padding: 0 4px; /* Add padding for better touch zones */
+    }
+    .controls-row {
+      justify-content: center;
+      padding: 8px 0;
+    }
+    .game-actions {
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: nowrap; /* Prevent wrapping on small screens */
+    }
+    .game-actions button {
+      min-width: 60px;
+      font-size: 13px;
+      padding: 10px 12px;
+      flex: 1;
+      max-width: 80px; /* Prevent buttons from getting too wide */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    /* Enhanced settings toggle */
+    .settings-toggle {
+      font-size: 14px;
+      padding: 10px 16px;
+      margin: 8px auto;
+      min-height: 48px; /* Ensure touch target size */
+      border-radius: 8px;
+    }
+    
+    /* Improved form controls */
+    .controls-compact select {
+      padding: 10px 12px;
+      font-size: 16px; /* Prevent iOS zoom */
+      min-height: 48px; /* iOS touch target */
+      border-radius: 8px;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f2f2f2' stroke-width='2'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 40px; /* Make room for custom arrow */
+    }
+    .controls-compact button {
+      padding: 10px 14px;
+      font-size: 14px;
+      min-height: 48px;
+      border-radius: 8px;
+    }
+    .controls-compact {
+      gap: 12px;
+      font-size: 14px;
+      justify-content: center;
+      padding: 12px 0;
+      flex-wrap: wrap;
+    }
+    .controls-compact label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 120px; /* Ensure consistent sizing */
+    }
+    
+    /* Better hint styling */
+    .hint {
+      font-size: 14px;
+      text-align: center;
+      margin: 8px 0;
+      color: var(--muted);
+      padding: 8px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+    }
+    
+    /* Enhanced message display */
+    .msg { 
+      font-size: 16px; 
+      min-height: 36px; 
+      padding: 12px; 
+      background: rgba(255,255,255,0.05); 
+      border-radius: 8px;
+      margin: 8px 0;
+      text-align: center;
+      line-height: 1.4;
+    }
+    
+    /* Improved dialog for mobile */
+    .dialog { 
+      font-size: 16px; 
+      padding: 32px 24px;
+      margin: 20px;
+      max-height: 90vh;
+      border-radius: 16px;
+    }
+    .dialog .answer-word { 
+      font-size: 32px; 
+      margin: 20px 0;
+      letter-spacing: 3px;
+    }
+    .dialog button {
+      min-height: 52px;
+      font-size: 18px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      margin-top: 24px;
+    }
+    
+    /* Enhanced keyboard */
+    .key { 
+      font-size: 16px;
+      min-height: 52px; /* Larger for better touch */
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    .key.wide {
+      font-size: 14px; /* Slightly smaller for wide keys */
+    }
+    
+    /* Larger tiles for better visibility */
+    .tile { 
+      font-size: clamp(16px, 5vw, 24px);
+      border-radius: 8px;
+      min-height: 48px; /* Ensure minimum size */
+    }
+    
+    /* Enhanced error styling for mobile visibility */
+    .msg.error-shake {
+      background: #ff4444 !important;
+      color: white !important;
+      font-size: 18px !important;
+      padding: 16px !important;
+      border: 3px solid #ffffff !important;
+      box-shadow: 0 4px 20px rgba(255, 68, 68, 0.6) !important;
+      animation: shake 0.6s ease-in-out, flash 2.5s ease-in-out !important;
+      border-radius: 12px !important;
+      margin: 12px 0 !important;
+    }
+    
+    /* Enhanced animations */
     @keyframes flash {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+      50% { opacity: 0.4; }
+    }
+    
+    /* iOS specific improvements */
+    @supports (-webkit-touch-callout: none) {
+      body {
+        -webkit-overflow-scrolling: touch;
+      }
+      .controls, .dialog, .kbd {
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+    
+    /* Enhanced stats for mobile */
+    .stats {
+      font-size: 14px;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 8px 0;
+    }
+    .pill {
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      white-space: nowrap;
     }
   }
 </style>
@@ -119,17 +380,25 @@
 <main>
   <div class="wrap">
     <div class="controls">
-      <label>Length:
-        <select id="lengthSelect"></select>
-      </label>
-      <label>Category:
-        <select id="categorySelect"></select>
-      </label>
-      <button id="newDailyBtn">New daily</button>
-      <button id="newRandomBtn">New random</button>
-      <button id="shareBtn">Share</button>
-      <button id="nameBtn">👤 Name</button>
-      <span class="hint">Type or use keyboard below.</span>
+      <div class="controls-row">
+        <div class="game-actions">
+          <button id="newDailyBtn" class="primary">📅 Daily</button>
+          <button id="newRandomBtn">🎲 Random</button>
+          <button id="shareBtn">📋 Share</button>
+          <button id="nameBtn">👤</button>
+        </div>
+      </div>
+      
+      <button class="settings-toggle" id="settingsToggle">⚙️ Settings</button>
+      
+      <div class="settings-panel" id="settingsPanel">
+        <div class="controls-compact">
+          <label>Length: <select id="lengthSelect"></select></label>
+          <label>Category: <select id="categorySelect"></select></label>
+        </div>
+      </div>
+      
+      <div class="hint">Type letters, then press Enter ↵</div>
     </div>
 
     <div class="stats" id="stats"></div>
@@ -326,6 +595,20 @@ Using emergency fallback mode...`;
   document.getElementById('newRandomBtn').addEventListener('click', () => { MODE='random'; newPuzzle('random'); });
   document.getElementById('shareBtn').addEventListener('click', shareResult);
   document.getElementById('nameBtn').addEventListener('click', showNameDialog);
+  
+  // Settings toggle functionality
+  document.getElementById('settingsToggle').addEventListener('click', () => {
+    const panel = document.getElementById('settingsPanel');
+    const toggle = document.getElementById('settingsToggle');
+    
+    if (panel.classList.contains('open')) {
+      panel.classList.remove('open');
+      toggle.textContent = '⚙️ Settings';
+    } else {
+      panel.classList.add('open');
+      toggle.textContent = '⚙️ Hide Settings';
+    }
+  });
 
   const rows = ['qwertyuiop','asdfghjkl','zxcvbnm⌫↵'];
   function renderKeyboard() {
@@ -939,8 +1222,8 @@ Try refreshing the page or contact the site administrator.`;
     // Force visibility
     msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
-    // FRIENDLY mobile notification - welcoming green overlay
-    console.log('📱 Creating friendly mobile success notification'); // Debug
+    // FRIENDLY mobile notification - iOS-style overlay
+    console.log('📱 Creating iOS-style mobile success notification'); // Debug
     const notification = document.createElement('div');
     notification.id = 'mobile-success-notification';
     notification.className = 'success-notification';
@@ -950,7 +1233,9 @@ Try refreshing the page or contact the site administrator.`;
       left: 0 !important;
       right: 0 !important;
       bottom: 0 !important;
-      background: rgba(76, 175, 80, 0.95) !important;
+      background: rgba(0, 0, 0, 0.8) !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
       color: white !important;
       display: flex !important;
       align-items: center !important;
@@ -961,22 +1246,21 @@ Try refreshing the page or contact the site administrator.`;
       text-align: center !important;
       padding: 40px !important;
       box-sizing: border-box !important;
-      animation: successPulse 1s infinite !important;
+      animation: fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
       cursor: pointer !important;
     `;
     
-    // Add success pulsing animation
+    // Add iOS-style animations
     const style = document.createElement('style');
     style.id = 'success-animations';
     style.textContent = `
-      @keyframes successPulse {
-        0% { opacity: 0.9; transform: scale(1); background: rgba(76, 175, 80, 0.95); }
-        50% { opacity: 1; transform: scale(1.02); background: rgba(100, 200, 100, 0.95); }
-        100% { opacity: 0.9; transform: scale(1); background: rgba(76, 175, 80, 0.95); }
+      @keyframes fadeInScale {
+        0% { opacity: 0; transform: scale(0.8); }
+        100% { opacity: 1; transform: scale(1); }
       }
       @keyframes success-pulse {
         0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
+        50% { transform: scale(1.02); }
       }
       .success-pulse {
         animation: success-pulse 0.6s ease-in-out !important;
@@ -988,20 +1272,34 @@ Try refreshing the page or contact the site administrator.`;
     
     notification.innerHTML = `
       <div style="
-        background: white; 
-        color: #4CAF50; 
-        padding: 40px; 
-        border-radius: 20px; 
-        max-width: 90vw; 
-        font-size: 26px;
-        border: 6px solid #4CAF50;
-        box-shadow: 0 0 50px rgba(0,0,0,0.9);
-        animation: bounce 0.6s ease-out;
+        background: linear-gradient(135deg, #4CAF50, #45a049); 
+        color: white; 
+        padding: 48px 32px; 
+        border-radius: 24px; 
+        max-width: 85vw; 
+        font-size: 24px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+        animation: cardBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        position: relative;
+        overflow: hidden;
       ">
-        ✅ SUCCESS ✅<br><br>
-        ${message}
-        <div style="margin-top: 25px; font-size: 18px; color: #666; background: #e8f5e8; padding: 15px; border-radius: 10px;">
-          📱 TAP ANYWHERE TO CONTINUE 📱
+        <div style="
+          position: absolute; 
+          top: 0; 
+          left: -100%; 
+          width: 100%; 
+          height: 100%; 
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          animation: shine 1.5s ease-out;
+        "></div>
+        <div style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));">✅</div>
+        <div style="font-weight: 700; font-size: 22px; margin-bottom: 8px;">SUCCESS</div>
+        <div style="font-weight: 400; font-size: 18px; opacity: 0.95; line-height: 1.4;">
+          ${message}
+        </div>
+        <div style="margin-top: 24px; font-size: 14px; opacity: 0.8; background: rgba(255,255,255,0.15); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
+          Tap anywhere to continue
         </div>
       </div>
     `;
@@ -1083,8 +1381,8 @@ Try refreshing the page or contact the site administrator.`;
       console.log('❌ Native alert blocked:', e);
     }
     
-    // SUPER PROMINENT mobile notification - takes up most of screen
-    console.log('📱 Creating GIANT mobile notification overlay'); // Debug
+    // SUPER PROMINENT mobile notification - iOS-style error overlay
+    console.log('📱 Creating iOS-style mobile error notification overlay'); // Debug
     const notification = document.createElement('div');
     notification.id = 'mobile-notification';
     notification.className = 'emergency-notification'; // Add class for debugging
@@ -1094,7 +1392,9 @@ Try refreshing the page or contact the site administrator.`;
       left: 0 !important;
       right: 0 !important;
       bottom: 0 !important;
-      background: rgba(255, 68, 68, 0.98) !important;
+      background: rgba(0, 0, 0, 0.85) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
       color: white !important;
       display: flex !important;
       align-items: center !important;
@@ -1105,18 +1405,29 @@ Try refreshing the page or contact the site administrator.`;
       text-align: center !important;
       padding: 40px !important;
       box-sizing: border-box !important;
-      animation: errorPulse 1s infinite !important;
+      animation: fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
       cursor: pointer !important;
     `;
     
-    // Add pulsing animation
+    // Add iOS-style animations
     const style = document.createElement('style');
     style.id = 'error-animations';
     style.textContent = `
+      @keyframes fadeInScale {
+        0% { opacity: 0; transform: scale(0.8); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+      @keyframes cardBounce {
+        0% { transform: translateY(30px) scale(0.9); opacity: 0; }
+        100% { transform: translateY(0) scale(1); opacity: 1; }
+      }
+      @keyframes shine {
+        0% { left: -100%; }
+        100% { left: 100%; }
+      }
       @keyframes errorPulse {
-        0% { opacity: 0.9; transform: scale(1); background: rgba(255, 68, 68, 0.98); }
-        50% { opacity: 1; transform: scale(1.02); background: rgba(255, 100, 100, 0.98); }
-        100% { opacity: 0.9; transform: scale(1); background: rgba(255, 68, 68, 0.98); }
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.02); }
       }
     `;
     if (!document.getElementById('error-animations')) {
@@ -1125,20 +1436,35 @@ Try refreshing the page or contact the site administrator.`;
     
     notification.innerHTML = `
       <div style="
-        background: white; 
-        color: #ff4444; 
-        padding: 40px; 
-        border-radius: 20px; 
-        max-width: 90vw; 
-        font-size: 26px;
-        border: 6px solid #ff4444;
-        box-shadow: 0 0 50px rgba(0,0,0,0.9);
-        animation: bounce 0.6s ease-out;
+        background: linear-gradient(135deg, #ff4444, #cc3333); 
+        color: white; 
+        padding: 48px 32px; 
+        border-radius: 24px; 
+        max-width: 85vw; 
+        font-size: 22px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+        animation: cardBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        position: relative;
+        overflow: hidden;
+        line-height: 1.4;
       ">
-        🚨 ERROR 🚨<br><br>
-        ${message}
-        <div style="margin-top: 25px; font-size: 18px; color: #666; background: #ffebee; padding: 15px; border-radius: 10px;">
-          📱 TAP ANYWHERE TO DISMISS 📱
+        <div style="
+          position: absolute; 
+          top: 0; 
+          left: -100%; 
+          width: 100%; 
+          height: 100%; 
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+          animation: shine 1.5s ease-out;
+        "></div>
+        <div style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));">⚠️</div>
+        <div style="font-weight: 700; font-size: 20px; margin-bottom: 12px;">ERROR</div>
+        <div style="font-weight: 400; font-size: 16px; opacity: 0.95; line-height: 1.5; white-space: pre-line;">
+          ${message}
+        </div>
+        <div style="margin-top: 24px; font-size: 14px; opacity: 0.8; background: rgba(255,255,255,0.15); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
+          Tap anywhere to dismiss
         </div>
       </div>
     `;
@@ -1302,7 +1628,7 @@ Try refreshing the page or contact the site administrator.`;
     }
   }
 
-  // physical keyboard
+  // Enhanced keyboard handling for mobile
   window.addEventListener('keydown', (e) => {
     // Don't handle keyboard events when a dialog is open or when typing in an input field
     if (document.querySelector('.dialog-overlay') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
@@ -1320,21 +1646,70 @@ Try refreshing the page or contact the site administrator.`;
     else if (/^[a-z]$/i.test(e.key)) typeChar(e.key);
   });
 
-  // Mobile-specific touch event handling
+  // Enhanced mobile touch event handling
   let touchStartY = 0;
   let touchEndY = 0;
+  let touchStartX = 0;
+  let touchEndX = 0;
+  let isScrolling = false;
   
   document.addEventListener('touchstart', (e) => {
     touchStartY = e.changedTouches[0].screenY;
-  });
+    touchStartX = e.changedTouches[0].screenX;
+    isScrolling = false;
+  }, { passive: true });
+  
+  document.addEventListener('touchmove', (e) => {
+    // Allow normal scrolling behavior
+    isScrolling = true;
+  }, { passive: true });
   
   document.addEventListener('touchend', (e) => {
     touchEndY = e.changedTouches[0].screenY;
-    // Prevent pull-to-refresh on mobile
-    if (touchStartY < touchEndY) {
+    touchEndX = e.changedTouches[0].screenX;
+    
+    // Only prevent pull-to-refresh if at top of page and pulling down
+    const deltaY = touchEndY - touchStartY;
+    if (deltaY > 50 && window.scrollY <= 0 && !isScrolling) {
       e.preventDefault();
     }
-  });
+    
+    // Add haptic feedback on iOS if available
+    if (window.navigator && navigator.vibrate) {
+      // Very subtle vibration for button presses
+      if (e.target.tagName === 'BUTTON') {
+        navigator.vibrate(10);
+      }
+    }
+  }, { passive: false });
+
+  // iOS-specific optimizations
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+    // Prevent zoom on double tap
+    document.addEventListener('touchend', function(e) {
+      const now = new Date().getTime();
+      const timeSince = now - lastTouchEnd;
+      
+      if ((timeSince < 300) && (timeSince > 0)) {
+        e.preventDefault();
+      }
+      
+      lastTouchEnd = now;
+    }, false);
+    
+    // Disable selection on iOS
+    document.addEventListener('selectstart', function(e) {
+      e.preventDefault();
+    });
+    
+    // Enhanced viewport handling for iOS
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no';
+    }
+  }
+  
+  let lastTouchEnd = 0;
 
   // boot
   renderKeyboard();
