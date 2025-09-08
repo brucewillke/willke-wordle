@@ -136,7 +136,7 @@
   let WORD_LEN = cfg.defaultWordLength ?? 5;
   let MAX_GUESSES = cfg.maxGuesses ?? 6;
   let MODE = cfg.mode === 'random' ? 'random' : 'daily';
-  let CURRENT_CATEGORY = '1776'; // Default category
+  let CURRENT_CATEGORY = 'sports'; // Default category
   let CATEGORIES = {};
   let ANSWERS = [];
   let ALLOWED = new Set();
@@ -199,7 +199,6 @@
 
   // discover available categories and lengths
   CATEGORIES = {
-    '1776': { name: '1776 History', description: 'American Revolutionary War era' },
     'sports': { name: 'Sports', description: 'Athletic terms and games' },
     'history': { name: 'US History', description: 'American historical terms' },
     'music': { name: 'Music', description: 'Musical terms and instruments' },
@@ -244,7 +243,7 @@
   catSel.innerHTML = availCategories.map(cat => 
     `<option value="${cat}">${CATEGORIES[cat].name}</option>`
   ).join('');
-  CURRENT_CATEGORY = availCategories.includes('1776') ? '1776' : availCategories[0];
+  CURRENT_CATEGORY = availCategories.includes('sports') ? 'sports' : availCategories[0];
   catSel.value = CURRENT_CATEGORY;
 
   lenSel.innerHTML = avail.map(l => `<option value="${l}">${l}</option>`).join('');
