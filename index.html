@@ -601,7 +601,10 @@
     
     // Must be a valid dictionary word
     if (!ALLOWED.has(g)) { 
-      showErrorMessage(`"${g.toUpperCase()}" is not in the word list!`);
+      showErrorMessage(`That's not a word! "${g.toUpperCase()}" cleared.`);
+      // Clear the invalid word
+      GUESSES[i] = '';
+      renderBoard();
       return; 
     }
 
