@@ -436,6 +436,7 @@
   }
 
   function finalizeGame(won) {
+    console.log('finalizeGame called with won:', won); // Debug
     LOCKED = true;
     const s = loadStats();
     const b = getBucket(s, MODE, WORD_LEN, CURRENT_CATEGORY);
@@ -473,11 +474,21 @@
     saveStats(s);
     updateStatsUI();
     
+    console.log('About to call showGameDialog with won:', won); // Debug
     // Show win/lose dialog
     showGameDialog(won);
   }
 
   function showGameDialog(won) {
+    console.log('showGameDialog called with won:', won); // Debug
+    
+    // Remove any existing dialogs first
+    const existingOverlay = document.querySelector('.dialog-overlay');
+    if (existingOverlay) {
+      console.log('Removing existing dialog'); // Debug
+      existingOverlay.remove();
+    }
+    
     const overlay = document.createElement('div');
     overlay.className = 'dialog-overlay';
     
@@ -488,13 +499,15 @@
     const personalGreeting = userName ? ` ${userName}` : '';
     const catName = CATEGORIES[CURRENT_CATEGORY]?.name || CURRENT_CATEGORY;
     
+    console.log('Creating dialog content for', won ? 'win' : 'lose'); // Debug
+    
     if (won) {
       dialog.innerHTML = `
         <h2 class="win">🎉 Congratulations${personalGreeting}!</h2>
         <p>You solved today's ${catName} Wordle!</p>
         <div class="answer-word">${ANSWER.toUpperCase()}</div>
         <p>Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!</p>
-        <button onclick="this.closest('.dialog-overlay').remove()" style="font-size:18px; padding:12px 24px;">Continue</button>
+        <button id="continueBtn" style="font-size:18px; padding:12px 24px;">Continue</button>
       `;
     } else {
       dialog.innerHTML = `
@@ -502,21 +515,35 @@
         <p>Better luck next time!</p>
         <div class="answer-word">${ANSWER.toUpperCase()}</div>
         <p>The word was <strong>${ANSWER.toUpperCase()}</strong></p>
-        <button onclick="this.closest('.dialog-overlay').remove()" style="font-size:18px; padding:12px 24px;">Try Again Tomorrow</button>
+        <button id="continueBtn" style="font-size:18px; padding:12px 24px;">Try Again Tomorrow</button>
       `;
     }
     
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     
+    console.log('Dialog added to DOM'); // Debug
+    
+    // Add click handler to the button
+    const continueBtn = dialog.querySelector('#continueBtn');
+    continueBtn.addEventListener('click', () => {
+      console.log('Continue button clicked'); // Debug
+      overlay.remove();
+    });
+    
     // Ensure dialog is visible on mobile
     setTimeout(() => {
+      console.log('Scrolling dialog into view'); // Debug
       dialog.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
+      
+      // Force focus on the button for mobile accessibility
+      continueBtn.focus();
+    }, 200);
     
     // Close on overlay click
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
+        console.log('Overlay clicked, closing dialog'); // Debug
         overlay.remove();
       }
     });
@@ -524,23 +551,41 @@
     // Close on Escape key
     const closeOnEscape = (e) => {
       if (e.key === 'Escape') {
+        console.log('Escape pressed, closing dialog'); // Debug
         overlay.remove();
         document.removeEventListener('keydown', closeOnEscape);
       }
     };
     document.addEventListener('keydown', closeOnEscape);
     
-    // Auto-close after 10 seconds if user doesn't interact (mobile fallback)
+    // Auto-close after 15 seconds if user doesn't interact (mobile fallback)
     const autoClose = setTimeout(() => {
+      console.log('Auto-closing dialog after timeout'); // Debug
       if (document.body.contains(overlay)) {
         overlay.remove();
       }
-    }, 10000);
+    }, 15000);
     
     // Cancel auto-close if user clicks
     overlay.addEventListener('click', () => {
       clearTimeout(autoClose);
     });
+    
+    console.log('Dialog setup complete'); // Debug
+    
+    // Mobile fallback - also show alert if dialog doesn't appear
+    if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      console.log('Mobile detected, setting up alert fallback'); // Debug
+      setTimeout(() => {
+        if (document.body.contains(overlay)) {
+          console.log('Dialog still exists, showing mobile alert as backup'); // Debug
+          const alertMessage = won ? 
+            `🎉 You won! The word was ${ANSWER.toUpperCase()}. Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!` :
+            `😔 Game Over! The word was ${ANSWER.toUpperCase()}.`;
+          alert(alertMessage);
+        }
+      }, 1000);
+    }
   }
 
   function showNameDialog() {
@@ -605,39 +650,69 @@
   }
 
   function showErrorMessage(message) {
+    console.log('Showing error message:', message); // Debug log
     msg.textContent = message;
     msg.classList.add('error-shake');
     msg.style.color = '#ff6b6b'; // Make error more visible
+    msg.style.backgroundColor = 'rgba(255, 107, 107, 0.2)'; // Background highlight
+    msg.style.padding = '8px';
+    msg.style.borderRadius = '6px';
+    msg.style.fontWeight = 'bold';
+    
+    // Force visibility on mobile
+    msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Mobile fallback - also use alert for critical messages
+    if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      console.log('Mobile detected, showing alert as fallback'); // Debug
+      setTimeout(() => {
+        alert(message);
+      }, 100);
+    }
+    
     setTimeout(() => {
       msg.classList.remove('error-shake');
       msg.style.color = 'var(--muted)'; // Reset color
-    }, 2000); // Longer duration for mobile
+      msg.style.backgroundColor = 'transparent'; // Reset background
+      msg.style.padding = '0';
+      msg.style.fontWeight = 'normal';
+    }, 3000); // Even longer duration for mobile
   }
 
   function submitGuess() {
+    console.log('submitGuess called, LOCKED:', LOCKED, 'GUESSES.length:', GUESSES.length); // Debug
     if (LOCKED || GUESSES.length === 0) return;
     const i = GUESSES.length - 1;
     const g = GUESSES[i];
     
+    console.log('Submitting guess:', g, 'length:', g.length, 'required:', WORD_LEN); // Debug
+    
     // Must have exactly WORD_LEN letters
     if (g.length !== WORD_LEN) { 
+      console.log('Not enough letters'); // Debug
       showErrorMessage('Not enough letters.');
       return; 
     }
     
+    console.log('Checking if allowed:', g, 'in set:', ALLOWED.has(g)); // Debug
+    
     // Must be a valid dictionary word
     if (!ALLOWED.has(g)) { 
+      console.log('Invalid word detected:', g); // Debug
       showErrorMessage(`"${g.toUpperCase()}" is not a valid word! Clearing...`);
       // Clear the invalid word immediately and re-render
       GUESSES[i] = '';
+      console.log('Cleared guess, re-rendering'); // Debug
       renderBoard();
       // Force a brief pause to show the error message
       setTimeout(() => {
+        console.log('Second render after clear'); // Debug
         renderBoard(); // Re-render to ensure UI is updated
-      }, 100);
+      }, 200);
       return; 
     }
 
+    console.log('Valid word, processing guess'); // Debug
     // Score the guess and update display
     const tiles = scoreGuess(ANSWER, g);
     renderBoard(); 
@@ -648,6 +723,7 @@
 
     if (win) { 
       msg.textContent = 'You win! 🎉'; 
+      console.log('Player won, calling finalizeGame(true)'); // Debug
       finalizeGame(true); 
       return; 
     }
