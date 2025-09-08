@@ -235,34 +235,68 @@
   const availCategories = [];
   const availLengths = new Set();
   
+  console.log('Discovering available categories and word lengths...');
+  
   for (const [catKey, catInfo] of Object.entries(CATEGORIES)) {
     let foundCategory = false;
     for (let l = 3; l <= 10; l++) {
       try {
-        const res = await fetch(`words/${catKey}/answers-${l}.txt`, { cache: 'no-store' });
+        console.log(`Checking: words/${catKey}/answers-${l}.txt`);
+        const res = await fetch(`words/${catKey}/answers-${l}.txt`, { 
+          cache: 'no-store',
+          mode: 'cors',
+          method: 'HEAD' // Just check if file exists, don't download content
+        });
         if (res.ok) {
+          console.log(`✓ Found ${catKey} length ${l}`);
           foundCategory = true;
           availLengths.add(l);
+        } else {
+          console.log(`✗ ${catKey} length ${l}: HTTP ${res.status}`);
         }
       } catch (e) {
-        // Category/length combo doesn't exist, that's fine
+        console.log(`✗ ${catKey} length ${l}: ${e.message}`);
+        // Category/length combo doesn't exist or server error - that's fine, continue
       }
     }
     if (foundCategory) {
       availCategories.push(catKey);
+      console.log(`✓ Category ${catKey} (${catInfo.name}) is available`);
+    } else {
+      console.log(`✗ Category ${catKey} (${catInfo.name}) has no accessible word files`);
     }
   }
 
   const avail = Array.from(availLengths).sort((a, b) => a - b);
   
-  if (avail.length === 0 || availCategories.length === 0) { 
-    msg.textContent = 'No word lists found. Add category folders like /words/sports/answers-5.txt'; 
-    console.error('No word files found in /words/ directory');
-    return; 
-  }
-
+  console.log('Discovery complete:');
   console.log('Available categories:', availCategories);
   console.log('Available word lengths:', avail);
+  
+  if (avail.length === 0 || availCategories.length === 0) { 
+    const errorMsg = `⚠️ Word files not accessible!
+    
+This could be due to:
+• Server blocking .txt file access
+• CORS restrictions on your web server
+• File permission issues
+• Network connectivity problems
+
+Categories found: ${availCategories.length}
+Word lengths found: ${avail.length}
+
+Using emergency fallback mode...`;
+
+    console.error('No word files accessible, using fallback mode');
+    showErrorMessage(errorMsg);
+    
+    // Emergency fallback - provide basic functionality
+    availCategories.push('fallback');
+    CATEGORIES['fallback'] = { name: 'Emergency Mode', description: 'Basic word set' };
+    avail.push(5, 6, 7);
+    
+    console.log('Emergency fallback activated');
+  }
 
   // Set up category selector
   catSel.innerHTML = availCategories.map(cat => 
@@ -358,16 +392,92 @@
   }
 
   async function loadLists() {
+    console.log(`Loading word lists for ${CURRENT_CATEGORY} length ${WORD_LEN}`);
+    
     try {
-      const ans = await fetch(`words/${CURRENT_CATEGORY}/answers-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text());
-      const alw = await fetch(`words/${CURRENT_CATEGORY}/allowed-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text()).catch(()=> '');
+      // Try to load answers file
+      console.log(`Fetching: words/${CURRENT_CATEGORY}/answers-${WORD_LEN}.txt`);
+      const answersResponse = await fetch(`words/${CURRENT_CATEGORY}/answers-${WORD_LEN}.txt`, { 
+        cache: 'no-store',
+        mode: 'cors' // Explicitly request CORS
+      });
+      
+      if (!answersResponse.ok) {
+        throw new Error(`HTTP ${answersResponse.status}: ${answersResponse.statusText} for answers file`);
+      }
+      
+      const answerText = await answersResponse.text();
+      console.log(`Answers file loaded, ${answerText.length} characters`);
+      
+      // Try to load allowed words file (optional)
+      let allowedText = '';
+      try {
+        console.log(`Fetching: words/${CURRENT_CATEGORY}/allowed-${WORD_LEN}.txt`);
+        const allowedResponse = await fetch(`words/${CURRENT_CATEGORY}/allowed-${WORD_LEN}.txt`, { 
+          cache: 'no-store',
+          mode: 'cors'
+        });
+        
+        if (allowedResponse.ok) {
+          allowedText = await allowedResponse.text();
+          console.log(`Allowed words file loaded, ${allowedText.length} characters`);
+        } else {
+          console.warn(`Allowed words file not accessible: HTTP ${allowedResponse.status}`);
+        }
+      } catch (allowedError) {
+        console.warn('Could not load allowed words file:', allowedError.message);
+      }
+      
       const sanitize = (txt) => [...new Set(txt.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(s => s.length===WORD_LEN && /^[a-z]+$/.test(s)))];
-      ANSWERS = sanitize(ans);
-      ALLOWED = new Set(sanitize(alw).concat(ANSWERS));
-      console.log(`Loaded ${ANSWERS.length} answers and ${ALLOWED.size} allowed words for ${CURRENT_CATEGORY} length ${WORD_LEN}`);
+      ANSWERS = sanitize(answerText);
+      ALLOWED = new Set(sanitize(allowedText).concat(ANSWERS));
+      
+      console.log(`Successfully loaded ${ANSWERS.length} answers and ${ALLOWED.size} allowed words for ${CURRENT_CATEGORY} length ${WORD_LEN}`);
+      
+      if (ANSWERS.length === 0) {
+        throw new Error('No valid answers found in file');
+      }
+      
+      // Clear any previous error messages
+      if (msg.textContent.includes('Failed to load')) {
+        msg.textContent = '';
+      }
+      
     } catch (e) {
       console.error('Failed to load word lists:', e);
-      msg.textContent = `Failed to load word lists for ${CATEGORIES[CURRENT_CATEGORY]?.name} ${WORD_LEN}-letter words.`;
+      
+      // Show detailed error information
+      const errorDetails = e.message || 'Unknown error';
+      const errorMessage = `⚠️ Cannot load ${CATEGORIES[CURRENT_CATEGORY]?.name} ${WORD_LEN}-letter word lists. 
+      
+Server Error: ${errorDetails}
+
+This might be due to:
+• Server permissions blocking .txt files
+• CORS (Cross-Origin) restrictions
+• Network connectivity issues
+
+Try refreshing the page or contact the site administrator.`;
+      
+      showErrorMessage(errorMessage);
+      
+      // Provide fallback - use a minimal word list to keep game functional
+      console.log('Using emergency fallback word list');
+      ANSWERS = ['hello', 'world', 'games', 'words', 'magic'].filter(w => w.length === WORD_LEN);
+      if (ANSWERS.length === 0) {
+        // Generate some basic words for the current length
+        const fallbackWords = {
+          5: ['hello', 'world', 'games', 'magic', 'flash', 'block', 'spark', 'swift'],
+          6: ['wonder', 'bright', 'strong', 'simple', 'cosmic', 'blazer', 'frozen'],
+          7: ['amazing', 'complex', 'freedom', 'journey', 'crystal', 'awesome'],
+          8: ['magnetic', 'tropical', 'inspired', 'machines', 'galaxies'],
+          9: ['wonderful', 'explosion', 'knowledge', 'adventures', 'sparkling'],
+          10: ['incredible', 'mysterious', 'technology', 'imaginable', 'tremendous']
+        };
+        ANSWERS = fallbackWords[WORD_LEN] || ['error'.padEnd(WORD_LEN, 'x').slice(0, WORD_LEN)];
+      }
+      ALLOWED = new Set(ANSWERS);
+      console.log(`Emergency fallback: ${ANSWERS.length} words available`);
     }
   }
 

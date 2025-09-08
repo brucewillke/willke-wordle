@@ -1,0 +1,39 @@
+# WillkeWorld Wordle Wonder - Server Configuration
+# This file helps fix "permission denied" errors for word list files
+
+# Allow access to .txt files (word lists)
+<Files "*.txt">
+    Require all granted
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET"
+    Header set Access-Control-Allow-Headers "Content-Type"
+</Files>
+
+# Set proper MIME type for .txt files
+AddType text/plain .txt
+
+# Enable CORS for all files in this directory
+Header set Access-Control-Allow-Origin "*"
+Header set Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+Header set Access-Control-Allow-Headers "Content-Type, Cache-Control"
+
+# Handle preflight OPTIONS requests
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# Cache control for word files
+<FilesMatch "\.(txt)$">
+    Header set Cache-Control "public, max-age=3600"
+</FilesMatch>
+
+# Security - prevent access to sensitive files
+<Files "config.json">
+    Require all granted
+    Header set Access-Control-Allow-Origin "*"
+</Files>
+
+# Block access to system files
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
