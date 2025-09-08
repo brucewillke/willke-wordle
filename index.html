@@ -56,6 +56,15 @@
   .hint { color: var(--muted); font-size: 12px; }
   .stats { display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--muted); }
   .pill { background:#1b1b1b; border:1px solid #333; border-radius:999px; padding:4px 8px; color:#ddd; }
+  .dialog-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:1000; }
+  .dialog { background:var(--bg); border:2px solid #333; border-radius:12px; padding:24px; max-width:400px; width:90%; text-align:center; }
+  .dialog h2 { margin:0 0 16px; font-size:28px; }
+  .dialog .win { color:var(--correct); }
+  .dialog .lose { color:#ff6b6b; }
+  .dialog .answer-word { font-size:32px; font-weight:800; margin:16px 0; letter-spacing:2px; }
+  .dialog button { margin-top:20px; padding:12px 24px; font-size:16px; }
+  .error-shake { animation: shake 0.5s ease-in-out; }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 </style>
 </head>
 <body>
@@ -374,6 +383,62 @@
 
     saveStats(s);
     updateStatsUI();
+    
+    // Show win/lose dialog
+    showGameDialog(won);
+  }
+
+  function showGameDialog(won) {
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'dialog';
+    
+    if (won) {
+      dialog.innerHTML = `
+        <h2 class="win">🎉 Congratulations!</h2>
+        <p>You solved today's 1776 Wordle!</p>
+        <div class="answer-word">${ANSWER.toUpperCase()}</div>
+        <p>Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!</p>
+        <button onclick="this.closest('.dialog-overlay').remove()">Continue</button>
+      `;
+    } else {
+      dialog.innerHTML = `
+        <h2 class="lose">😔 Game Over</h2>
+        <p>Better luck next time!</p>
+        <div class="answer-word">${ANSWER.toUpperCase()}</div>
+        <p>The word was <strong>${ANSWER.toUpperCase()}</strong></p>
+        <button onclick="this.closest('.dialog-overlay').remove()">Try Again Tomorrow</button>
+      `;
+    }
+    
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
+    
+    // Close on Escape key
+    const closeOnEscape = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', closeOnEscape);
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+  }
+
+  function showErrorMessage(message) {
+    msg.textContent = message;
+    msg.classList.add('error-shake');
+    setTimeout(() => {
+      msg.classList.remove('error-shake');
+    }, 500);
   }
 
   function submitGuess() {
@@ -383,13 +448,13 @@
     
     // Must have exactly WORD_LEN letters
     if (g.length !== WORD_LEN) { 
-      msg.textContent = 'Not enough letters.'; 
+      showErrorMessage('Not enough letters.');
       return; 
     }
     
     // Must be a valid dictionary word
     if (!ALLOWED.has(g)) { 
-      msg.textContent = 'Not in word list.'; 
+      showErrorMessage(`"${g.toUpperCase()}" is not in the word list!`);
       return; 
     }
 
