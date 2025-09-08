@@ -883,7 +883,7 @@ Try refreshing the page or contact the site administrator.`;
         saveUserName(name);
         updateStatsUI();
         overlay.remove();
-        showErrorMessage(`Welcome, ${name}! 👋`);
+        showSuccessMessage(`Welcome, ${name}! 👋`);
       } else {
         nameInput.style.borderColor = '#ff6b6b';
         nameInput.focus();
@@ -915,6 +915,138 @@ Try refreshing the page or contact the site administrator.`;
         overlay.remove();
       }
     });
+  }
+
+  function showSuccessMessage(message) {
+    console.log('✅ showSuccessMessage called with:', message); // Success debug
+    
+    // IMMEDIATE visual feedback - positive title change
+    document.title = '✅ SUCCESS: ' + message;
+    
+    // Update the regular message area with positive styling
+    msg.textContent = message;
+    msg.classList.add('success-pulse');
+    msg.style.color = '#4CAF50 !important'; // Green for success
+    msg.style.backgroundColor = 'rgba(76, 175, 80, 0.1) !important'; // Light green background
+    msg.style.padding = '12px !important';
+    msg.style.borderRadius = '8px !important';
+    msg.style.fontWeight = 'bold !important';
+    msg.style.fontSize = '16px !important';
+    msg.style.border = '2px solid #4CAF50 !important'; // Green border
+    msg.style.zIndex = '999 !important';
+    msg.style.position = 'relative !important';
+    
+    // Force visibility
+    msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // FRIENDLY mobile notification - welcoming green overlay
+    console.log('📱 Creating friendly mobile success notification'); // Debug
+    const notification = document.createElement('div');
+    notification.id = 'mobile-success-notification';
+    notification.className = 'success-notification';
+    notification.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      background: rgba(76, 175, 80, 0.95) !important;
+      color: white !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 28px !important;
+      font-weight: bold !important;
+      z-index: 999999 !important;
+      text-align: center !important;
+      padding: 40px !important;
+      box-sizing: border-box !important;
+      animation: successPulse 1s infinite !important;
+      cursor: pointer !important;
+    `;
+    
+    // Add success pulsing animation
+    const style = document.createElement('style');
+    style.id = 'success-animations';
+    style.textContent = `
+      @keyframes successPulse {
+        0% { opacity: 0.9; transform: scale(1); background: rgba(76, 175, 80, 0.95); }
+        50% { opacity: 1; transform: scale(1.02); background: rgba(100, 200, 100, 0.95); }
+        100% { opacity: 0.9; transform: scale(1); background: rgba(76, 175, 80, 0.95); }
+      }
+      @keyframes success-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      .success-pulse {
+        animation: success-pulse 0.6s ease-in-out !important;
+      }
+    `;
+    if (!document.getElementById('success-animations')) {
+      document.head.appendChild(style);
+    }
+    
+    notification.innerHTML = `
+      <div style="
+        background: white; 
+        color: #4CAF50; 
+        padding: 40px; 
+        border-radius: 20px; 
+        max-width: 90vw; 
+        font-size: 26px;
+        border: 6px solid #4CAF50;
+        box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        animation: bounce 0.6s ease-out;
+      ">
+        ✅ SUCCESS ✅<br><br>
+        ${message}
+        <div style="margin-top: 25px; font-size: 18px; color: #666; background: #e8f5e8; padding: 15px; border-radius: 10px;">
+          📱 TAP ANYWHERE TO CONTINUE 📱
+        </div>
+      </div>
+    `;
+    
+    // Remove any existing success notifications
+    const existing = document.getElementById('mobile-success-notification');
+    if (existing) {
+      console.log('🗑️ Removing existing success notification');
+      existing.remove();
+    }
+    
+    document.body.appendChild(notification);
+    console.log('✅ SUCCESS mobile notification added to DOM');
+    
+    // Click to dismiss
+    notification.addEventListener('click', () => {
+      console.log('👆 Success notification clicked, removing');
+      notification.remove();
+      document.title = 'WillkeWorld Wordle Wonder'; // Reset title
+    });
+    
+    // Keyboard dismiss
+    const dismissOnKey = (e) => {
+      console.log('⌨️ Key pressed, dismissing success notification');
+      notification.remove();
+      document.title = 'WillkeWorld Wordle Wonder'; // Reset title
+      document.removeEventListener('keydown', dismissOnKey);
+    };
+    document.addEventListener('keydown', dismissOnKey);
+    
+    // Auto-remove after 3 seconds (shorter for positive messages)
+    setTimeout(() => {
+      if (notification && notification.parentNode) {
+        console.log('⏱️ Auto-removing success notification after timeout');
+        notification.remove();
+        document.title = 'WillkeWorld Wordle Wonder'; // Reset title
+      }
+    }, 3000);
+    
+    setTimeout(() => {
+      msg.classList.remove('success-pulse');
+      msg.style.cssText = ''; // Reset all styles at once
+    }, 4000);
+    
+    console.log('🎯 showSuccessMessage function complete');
   }
 
   function showErrorMessage(message) {
