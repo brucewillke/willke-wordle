@@ -9,8 +9,22 @@
 <title>wxrdle lite</title>
 <style>
   :root {
-    --bg: #111;
-    --fg: #f2f2f2;
+    --bg: #111  lenSel.innerHTML = avail.map(l => `<option value="${l}">${l}</option>`).join('');
+  lenSel.value = String(avail.includes(WORD_LEN) ? WORD_LEN : avail[0]);
+
+  lenSel.addEventListener('change', async () => { 
+    WORD_LEN = Number(lenSel.value); 
+    await loadLists(); 
+    newPuzzle(MODE); 
+    updateStatsUI(); 
+  });
+  
+  catSel.addEventListener('change', async () => { 
+    CURRENT_CATEGORY = catSel.value; 
+    await loadLists(); 
+    newPuzzle(MODE); 
+    updateStatsUI(); 
+  });  --fg: #f2f2f2;
     --muted: #aaa;
     --tile-bg: #222;
     --absent: #3a3a3c;
@@ -83,6 +97,9 @@
       <label>Length:
         <select id="lengthSelect"></select>
       </label>
+      <label>Category:
+        <select id="categorySelect"></select>
+      </label>
       <button id="newDailyBtn">New daily</button>
       <button id="newRandomBtn">New random</button>
       <button id="shareBtn">Share</button>
@@ -120,6 +137,8 @@
   let WORD_LEN = cfg.defaultWordLength ?? 5;
   let MAX_GUESSES = cfg.maxGuesses ?? 6;
   let MODE = cfg.mode === 'random' ? 'random' : 'daily';
+  let CURRENT_CATEGORY = '1776'; // Default category
+  let CATEGORIES = {};
   let ANSWERS = [];
   let ALLOWED = new Set();
   let PUZZLE_ID = '';
@@ -133,6 +152,7 @@
   const kbd = document.getElementById('kbd');
   const meta = document.getElementById('puzzleMeta');
   const lenSel = document.getElementById('lengthSelect');
+  const catSel = document.getElementById('categorySelect');
   const statsEl = document.getElementById('stats');
 
   // localStorage stats helpers
@@ -151,11 +171,11 @@
   function saveUserName(name) {
     localStorage.setItem(USER_NAME_KEY, name.trim());
   }
-  function statsBucketKey(mode, len) {
-    return `${mode}-${len}`; // daily-5, random-6, etc.
+  function statsBucketKey(mode, len, category) {
+    return `${mode}-${len}-${category}`; // daily-5-sports, random-6-history, etc.
   }
-  function getBucket(stats, mode, len) {
-    const key = statsBucketKey(mode, len);
+  function getBucket(stats, mode, len, category) {
+    const key = statsBucketKey(mode, len, category);
     if (!stats[key]) stats[key] = { games:0, wins:0, streak:0, lastWinDate:'', lastPlayedPid:'' };
     return stats[key];
   }
@@ -165,40 +185,85 @@
   }
   function updateStatsUI() {
     const s = loadStats();
-    const b = getBucket(s, 'daily', WORD_LEN);
-    const r = getBucket(s, 'random', WORD_LEN);
+    const b = getBucket(s, 'daily', WORD_LEN, CURRENT_CATEGORY);
+    const r = getBucket(s, 'random', WORD_LEN, CURRENT_CATEGORY);
     const userName = loadUserName();
     const greeting = userName ? `<span class="name-display">${userName}</span>'s Stats: ` : '';
+    const catName = CATEGORIES[CURRENT_CATEGORY]?.name || CURRENT_CATEGORY;
     
     statsEl.innerHTML = `
       ${greeting}
-      <span class="pill">Daily ${WORD_LEN}: G ${b.games} • W ${b.wins} • Streak ${b.streak}</span>
-      <span class="pill">Random ${WORD_LEN}: G ${r.games} • W ${r.wins}</span>
+      <span class="pill">${catName} Daily ${WORD_LEN}: G ${b.games} • W ${b.wins} • Streak ${b.streak}</span>
+      <span class="pill">${catName} Random ${WORD_LEN}: G ${r.games} • W ${r.wins}</span>
     `;
   }
 
-  // discover available lengths
-  const avail = [];
-  for (let l=3; l<=10; l++) {
-    try { 
-      const res = await fetch(`words/answers-${l}.txt`, { cache:'no-store' }); 
-      if (res.ok) avail.push(l); 
-    } catch (e) {
-      console.log(`No answers-${l}.txt file found`);
+  // discover available categories and lengths
+  CATEGORIES = {
+    '1776': { name: '1776 History', description: 'American Revolutionary War era' },
+    'sports': { name: 'Sports', description: 'Athletic terms and games' },
+    'history': { name: 'US History', description: 'American historical terms' },
+    'music': { name: 'Music', description: 'Musical terms and instruments' },
+    'art': { name: 'Art', description: 'Artistic terms and techniques' },
+    'literature': { name: 'Literature', description: 'Literary terms and authors' },
+    'bible': { name: 'Bible', description: 'Biblical terms and names' }
+  };
+
+  const availCategories = [];
+  const availLengths = new Set();
+  
+  for (const [catKey, catInfo] of Object.entries(CATEGORIES)) {
+    let foundCategory = false;
+    for (let l = 3; l <= 10; l++) {
+      try {
+        const res = await fetch(`words/${catKey}/answers-${l}.txt`, { cache: 'no-store' });
+        if (res.ok) {
+          foundCategory = true;
+          availLengths.add(l);
+        }
+      } catch (e) {
+        // Category/length combo doesn't exist, that's fine
+      }
+    }
+    if (foundCategory) {
+      availCategories.push(catKey);
     }
   }
-  if (avail.length === 0) { 
-    msg.textContent = 'No word lists found. Add /words/answers-5.txt.'; 
+
+  const avail = Array.from(availLengths).sort((a, b) => a - b);
+  
+  if (avail.length === 0 || availCategories.length === 0) { 
+    msg.textContent = 'No word lists found. Add category folders like /words/sports/answers-5.txt'; 
     console.error('No word files found in /words/ directory');
     return; 
   }
 
+  console.log('Available categories:', availCategories);
   console.log('Available word lengths:', avail);
+
+  // Set up category selector
+  catSel.innerHTML = availCategories.map(cat => 
+    `<option value="${cat}">${CATEGORIES[cat].name}</option>`
+  ).join('');
+  CURRENT_CATEGORY = availCategories.includes('1776') ? '1776' : availCategories[0];
+  catSel.value = CURRENT_CATEGORY;
 
   lenSel.innerHTML = avail.map(l => `<option value="${l}">${l}</option>`).join('');
   lenSel.value = String(avail.includes(WORD_LEN) ? WORD_LEN : avail[0]);
 
-  lenSel.addEventListener('change', async () => { WORD_LEN = Number(lenSel.value); await loadLists(); newPuzzle(MODE); updateStatsUI(); });
+  lenSel.addEventListener('change', async () => { 
+    WORD_LEN = Number(lenSel.value); 
+    await loadLists(); 
+    newPuzzle(MODE); 
+    updateStatsUI(); 
+  });
+  
+  catSel.addEventListener('change', async () => { 
+    CURRENT_CATEGORY = catSel.value; 
+    await loadLists(); 
+    newPuzzle(MODE); 
+    updateStatsUI(); 
+  });
 
   document.getElementById('newDailyBtn').addEventListener('click', () => { MODE='daily'; newPuzzle('daily'); });
   document.getElementById('newRandomBtn').addEventListener('click', () => { MODE='random'; newPuzzle('random'); });
@@ -271,15 +336,15 @@
 
   async function loadLists() {
     try {
-      const ans = await fetch(`words/answers-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text());
-      const alw = await fetch(`words/allowed-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text()).catch(()=> '');
+      const ans = await fetch(`words/${CURRENT_CATEGORY}/answers-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text());
+      const alw = await fetch(`words/${CURRENT_CATEGORY}/allowed-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text()).catch(()=> '');
       const sanitize = (txt) => [...new Set(txt.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(s => s.length===WORD_LEN && /^[a-z]+$/.test(s)))];
       ANSWERS = sanitize(ans);
       ALLOWED = new Set(sanitize(alw).concat(ANSWERS));
-      console.log(`Loaded ${ANSWERS.length} answers and ${ALLOWED.size} allowed words for length ${WORD_LEN}`);
+      console.log(`Loaded ${ANSWERS.length} answers and ${ALLOWED.size} allowed words for ${CURRENT_CATEGORY} length ${WORD_LEN}`);
     } catch (e) {
       console.error('Failed to load word lists:', e);
-      msg.textContent = `Failed to load word lists for ${WORD_LEN}-letter words.`;
+      msg.textContent = `Failed to load word lists for ${CATEGORIES[CURRENT_CATEGORY]?.name} ${WORD_LEN}-letter words.`;
     }
   }
 
@@ -302,21 +367,22 @@
     let pid, idx;
     if (mode === 'random') {
       const rnd = Math.random().toString(36).slice(2,10);
-      pid = `rnd-${rnd}-${WORD_LEN}`;
-      idx = seedIndex(`${rnd}:${WORD_LEN}`, ANSWERS.length);
-      console.log(`Random mode: rnd=${rnd}, idx=${idx}, total=${ANSWERS.length}`);
+      pid = `rnd-${rnd}-${WORD_LEN}-${CURRENT_CATEGORY}`;
+      idx = seedIndex(`${rnd}:${WORD_LEN}:${CURRENT_CATEGORY}`, ANSWERS.length);
+      console.log(`Random mode: rnd=${rnd}, category=${CURRENT_CATEGORY}, idx=${idx}, total=${ANSWERS.length}`);
     } else {
-      pid = getDailyPuzzleId();
+      pid = `${getDailyPuzzleId()}-${CURRENT_CATEGORY}`;
       idx = seedIndex(`${cfg.publicSeed}:${pid}`, ANSWERS.length);
-      console.log(`Daily mode: pid=${pid}, seed=${cfg.publicSeed}, idx=${idx}, total=${ANSWERS.length}`);
+      console.log(`Daily mode: pid=${pid}, seed=${cfg.publicSeed}, category=${CURRENT_CATEGORY}, idx=${idx}, total=${ANSWERS.length}`);
     }
     PUZZLE_ID = pid;
     ANSWER = ANSWERS[idx];
     console.log(`Selected answer: ${ANSWER} (index ${idx})`);
-    meta.textContent = ` • ${mode} • ${WORD_LEN}-letter • #${puzzleNumber(pid)}`;
+    const catName = CATEGORIES[CURRENT_CATEGORY]?.name || CURRENT_CATEGORY;
+    meta.textContent = ` • ${catName} • ${mode} • ${WORD_LEN}-letter • #${puzzleNumber(pid)}`;
     msg.textContent = '';
     renderBoard(); updateKeyStates();
-    const s = loadStats(); getBucket(s, mode, WORD_LEN); s[statsBucketKey(mode,WORD_LEN)].lastPlayedPid = pid; saveStats(s); updateStatsUI();
+    const s = loadStats(); getBucket(s, mode, WORD_LEN, CURRENT_CATEGORY); s[statsBucketKey(mode,WORD_LEN,CURRENT_CATEGORY)].lastPlayedPid = pid; saveStats(s); updateStatsUI();
   }
 
   function scoreGuess(answer, guess) {
@@ -365,7 +431,7 @@
   function finalizeGame(won) {
     LOCKED = true;
     const s = loadStats();
-    const b = getBucket(s, MODE, WORD_LEN);
+    const b = getBucket(s, MODE, WORD_LEN, CURRENT_CATEGORY);
 
     // Count games only once per puzzleId (avoid F5 spam)
     const alreadyCounted = b._countedPid === PUZZLE_ID;
@@ -413,11 +479,12 @@
     
     const userName = loadUserName();
     const personalGreeting = userName ? ` ${userName}` : '';
+    const catName = CATEGORIES[CURRENT_CATEGORY]?.name || CURRENT_CATEGORY;
     
     if (won) {
       dialog.innerHTML = `
         <h2 class="win">🎉 Congratulations${personalGreeting}!</h2>
-        <p>You solved today's 1776 Wordle!</p>
+        <p>You solved today's ${catName} Wordle!</p>
         <div class="answer-word">${ANSWER.toUpperCase()}</div>
         <p>Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!</p>
         <button onclick="this.closest('.dialog-overlay').remove()">Continue</button>
@@ -574,8 +641,9 @@
     const squares = rows.map(g => scoreGuess(ANSWER,g).map(x => x==='correct'?'🟩': x==='present'?'🟨':'⬛').join('')).join('\n');
     const won = rows.length>0 && scoreGuess(ANSWER, rows[rows.length-1]).every(x=>x==='correct');
     const attempts = won ? rows.length : 'X';
+    const catName = CATEGORIES[CURRENT_CATEGORY]?.name || CURRENT_CATEGORY;
     const text = [
-      `1776 Wordle ${puzzleNumber(PUZZLE_ID)} ${attempts}/${MAX_GUESSES}`,
+      `${catName} Wordle ${puzzleNumber(PUZZLE_ID)} ${attempts}/${MAX_GUESSES}`,
       '',
       squares
     ].join('\n');
