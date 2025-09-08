@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+/>
+<title>wxrdle lite</title>
+<style>
+  :root {
+    --bg: #111;
+    --fg: #f2f2f2;
+    --muted: #aaa;
+    --tile-bg: #222;
+    --absent: #3a3a3c;
+    --present: #b59f3b;
+    --correct: #538d4e;
+    --accent: #6ca0ff;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+    display: grid; grid-template-rows: auto 1fr auto;
+  }
+  header, footer { padding: 10px 14px; border-bottom: 1px solid #222; }
+  footer { border-top: 1px solid #222; border-bottom: none; color: var(--muted); font-size: 12px; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 12px; }
+  .row { display: grid; gap: 6px; grid-template-columns: repeat(var(--len), 1fr); margin: 6px 0; }
+  .tile {
+    aspect-ratio: 1 / 1; background: var(--tile-bg); border: 2px solid #333;
+    display: grid; place-items: center; font-weight: 700; font-size: clamp(18px, 4vw, 28px);
+    text-transform: uppercase; border-radius: 6px;
+  }
+  .tile.absent { background: var(--absent); border-color: var(--absent); }
+  .tile.present { background: var(--present); border-color: var(--present); color: #111; }
+  .tile.correct { background: var(--correct); border-color: var(--correct); }
+  .controls { display: flex; gap: 8px; margin: 10px 0 4px; align-items: center; flex-wrap: wrap; }
+  button, select {
+    background: #1b1b1b; color: var(--fg); border: 1px solid #333; border-radius: 6px;
+    padding: 8px 10px; cursor: pointer; font-weight: 600;
+  }
+  button.primary { background: var(--accent); color: #081424; border-color: transparent; }
+  button:disabled { opacity: .6; cursor: not-allowed; }
+  .kbd { display: grid; gap: 6px; margin-top: 8px; }
+  .kbd-row { display: grid; gap: 6px; grid-template-columns: repeat(20, 1fr); }
+  .key { grid-column: span 2; }
+  .key.wide { grid-column: span 3; }
+  .key.state-absent { background: var(--absent); border-color: var(--absent); }
+  .key.state-present { background: var(--present); border-color: var(--present); color: #111; }
+  .key.state-correct { background: var(--correct); border-color: var(--correct); }
+  .msg { min-height: 22px; color: var(--muted); margin: 6px 0 2px; }
+  a { color: var(--accent); text-decoration: none; }
+  .title { font-weight: 800; letter-spacing: .5px; }
+  .hint { color: var(--muted); font-size: 12px; }
+  .stats { display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--muted); }
+  .pill { background:#1b1b1b; border:1px solid #333; border-radius:999px; padding:4px 8px; color:#ddd; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="title" id="appTitle">wxrdle lite</span>
+    <span class="hint" id="puzzleMeta"></span>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="controls">
+      <label>Length:
+        <select id="lengthSelect"></select>
+      </label>
+      <button id="newDailyBtn">New daily</button>
+      <button id="newRandomBtn">New random</button>
+      <button id="shareBtn">Share</button>
+      <span class="hint">Type or use keyboard below.</span>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div id="board"></div>
+    <div class="msg" id="msg"></div>
+
+    <div class="kbd" id="kbd"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    Dictionary lives in <code>/words/*.txt</code>. Edit and push to customize. Hosted statically, no backend ✨
+  </div>
+</footer>
+
+<script>
+(async function(){
+  const cfg = await fetch('config.json').then(r => r.json());
+  document.getElementById('appTitle').textContent = cfg.title || 'wxrdle lite';
+
+  // State
+  let WORD_LEN = cfg.defaultWordLength ?? 5;
+  let MAX_GUESSES = cfg.maxGuesses ?? 6;
+  let MODE = cfg.mode === 'random' ? 'random' : 'daily';
+  let ANSWERS = [];
+  let ALLOWED = new Set();
+  let PUZZLE_ID = '';
+  let ANSWER = '';
+  let GUESSES = [];
+  let LOCKED = false;
+
+  // UI refs
+  const board = document.getElementById('board');
+  const msg = document.getElementById('msg');
+  const kbd = document.getElementById('kbd');
+  const meta = document.getElementById('puzzleMeta');
+  const lenSel = document.getElementById('lengthSelect');
+  const statsEl = document.getElementById('stats');
+
+  // localStorage stats helpers
+  const STATS_KEY = 'wxrdle-lite-stats';
+  function loadStats() {
+    try { return JSON.parse(localStorage.getItem(STATS_KEY) || '{}'); } catch { return {}; }
+  }
+  function saveStats(s) {
+    localStorage.setItem(STATS_KEY, JSON.stringify(s));
+  }
+  function statsBucketKey(mode, len) {
+    return `${mode}-${len}`; // daily-5, random-6, etc.
+  }
+  function getBucket(stats, mode, len) {
+    const key = statsBucketKey(mode, len);
+    if (!stats[key]) stats[key] = { games:0, wins:0, streak:0, lastWinDate:'', lastPlayedPid:'' };
+    return stats[key];
+  }
+  function todayISO() {
+    const t = new Date();
+    return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate())).toISOString().slice(0,10);
+  }
+  function updateStatsUI() {
+    const s = loadStats();
+    const b = getBucket(s, 'daily', WORD_LEN);
+    const r = getBucket(s, 'random', WORD_LEN);
+    statsEl.innerHTML = `
+      <span class="pill">Daily ${WORD_LEN}: G ${b.games} • W ${b.wins} • Streak ${b.streak}</span>
+      <span class="pill">Random ${WORD_LEN}: G ${r.games} • W ${r.wins}</span>
+    `;
+  }
+
+  // discover available lengths
+  const avail = [];
+  for (let l=3; l<=10; l++) {
+    try { const ok = await fetch(`words/answers-${l}.txt`, { cache:'no-store' }); if (ok.ok) avail.push(l); } catch {}
+  }
+  if (avail.length === 0) { msg.textContent = 'No word lists found. Add /words/answers-5.txt.'; return; }
+
+  lenSel.innerHTML = avail.map(l => `<option value="${l}">${l}</option>`).join('');
+  lenSel.value = String(avail.includes(WORD_LEN) ? WORD_LEN : avail[0]);
+
+  lenSel.addEventListener('change', async () => { WORD_LEN = Number(lenSel.value); await loadLists(); newPuzzle(MODE); updateStatsUI(); });
+
+  document.getElementById('newDailyBtn').addEventListener('click', () => { MODE='daily'; newPuzzle('daily'); });
+  document.getElementById('newRandomBtn').addEventListener('click', () => { MODE='random'; newPuzzle('random'); });
+  document.getElementById('shareBtn').addEventListener('click', shareResult);
+
+  const rows = ['qwertyuiop','asdfghjkl','↵zxcvbnm⌫'];
+  function renderKeyboard() {
+    kbd.innerHTML = '';
+    for (const r of rows) {
+      const row = document.createElement('div'); row.className = 'kbd-row';
+      for (const ch of r) {
+        const b = document.createElement('button'); b.className = 'key'; if (ch==='↵'||ch==='⌫') b.classList.add('wide');
+        b.textContent = ch;
+        b.addEventListener('click', () => {
+          if (ch==='↵') submitGuess();
+          else if (ch==='⌫') backspace();
+          else typeChar(ch);
+        });
+        row.appendChild(b);
+      }
+      kbd.appendChild(row);
+    }
+  }
+
+  function updateKeyStates() {
+    const states = {}; const rank = {absent:0,present:1,correct:2};
+    for (const g of GUESSES) {
+      if (g.length !== ANSWER.length) continue;
+      const tiles = scoreGuess(ANSWER,g);
+      tiles.forEach((s,i) => {
+        const c = g[i];
+        if (!(c in states) || rank[s] > rank[states[c]]) states[c] = s;
+      });
+    }
+    for (const btn of kbd.querySelectorAll('.key')) {
+      const c = btn.textContent;
+      if (!c || c.length!==1 || !/[a-z]/.test(c)) continue;
+      btn.classList.remove('state-absent','state-present','state-correct');
+      if (states[c]) btn.classList.add('state-'+states[c]);
+    }
+  }
+
+  function renderBoard() {
+    board.style.setProperty('--len', WORD_LEN);
+    board.innerHTML = '';
+    for (let r=0; r<MAX_GUESSES; r++) {
+      const row = document.createElement('div'); row.className = 'row';
+      const guess = GUESSES[r] || '';
+      const isDone = r < GUESSES.length && guess.length === WORD_LEN;
+      const tiles = isDone ? scoreGuess(ANSWER, guess) : [];
+      for (let c=0;c<WORD_LEN;c++) {
+        const t = document.createElement('div'); t.className='tile';
+        t.textContent = guess[c] ? guess[c].toUpperCase() : '';
+        if (isDone) t.classList.add(tiles[c]); row.appendChild(t);
+      }
+      board.appendChild(row);
+    }
+  }
+
+  function seedIndex(seedStr, modulo) {
+    let h = 2166136261 >>> 0;
+    for (let i=0;i<seedStr.length;i++){ h ^= seedStr.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return modulo ? (h % modulo) : 0;
+  }
+
+  async function loadLists() {
+    const ans = await fetch(`words/answers-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text());
+    const alw = await fetch(`words/allowed-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text()).catch(()=> '');
+    const sanitize = (txt) => [...new Set(txt.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(s => s.length===WORD_LEN && /^[a-z]+$/.test(s)))];
+    ANSWERS = sanitize(ans);
+    ALLOWED = new Set(sanitize(alw).concat(ANSWERS));
+  }
+
+  function getDailyPuzzleId() {
+    const today = new Date();
+    const iso = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())).toISOString().slice(0,10);
+    return `${iso}-${WORD_LEN}`;
+  }
+
+  function puzzleNumber(pid) {
+    if (!pid.startsWith('20')) return '?';
+    const epoch = new Date(cfg.dailyEpoch || '2024-01-01T00:00:00Z');
+    const d = new Date(pid.slice(0,10)+'T00:00:00Z');
+    const n = Math.floor((d - epoch) / 86400000);
+    return n >= 0 ? n : '?';
+  }
+
+  function newPuzzle(mode) {
+    GUESSES = []; LOCKED = false;
+    let pid, idx;
+    if (mode === 'random') {
+      const rnd = Math.random().toString(36).slice(2,10);
+      pid = `rnd-${rnd}-${WORD_LEN}`;
+      idx = seedIndex(`${rnd}:${WORD_LEN}`, ANSWERS.length);
+    } else {
+      pid = getDailyPuzzleId();
+      idx = seedIndex(`${cfg.publicSeed}:${pid}`, ANSWERS.length);
+    }
+    PUZZLE_ID = pid;
+    ANSWER = ANSWERS[idx];
+    meta.textContent = ` • ${mode} • ${WORD_LEN}-letter • #${puzzleNumber(pid)}`;
+    msg.textContent = '';
+    renderBoard(); updateKeyStates();
+    const s = loadStats(); getBucket(s, mode, WORD_LEN); s[statsBucketKey(mode,WORD_LEN)].lastPlayedPid = pid; saveStats(s); updateStatsUI();
+  }
+
+  function scoreGuess(answer, guess) {
+    const n = answer.length, res = Array(n).fill('absent'), count = {};
+    for (let i=0;i<n;i++) count[answer[i]] = (count[answer[i]]||0)+1;
+    for (let i=0;i<n;i++) if (guess[i]===answer[i]) { res[i]='correct'; count[guess[i]]--; }
+    for (let i=0;i<n;i++) if (res[i]!=='correct' && (count[guess[i]]||0)>0) { res[i]='present'; count[guess[i]]--; }
+    return res;
+  }
+
+  function typeChar(ch) {
+    if (LOCKED) return;
+    if (!/^[a-z]$/i.test(ch)) return;
+    if (GUESSES.length===0 || GUESSES[GUESSES.length-1].length===WORD_LEN) {
+      if (GUESSES.length>=MAX_GUESSES) return;
+      GUESSES.push('');
+    }
+    const i = GUESSES.length-1;
+    if (GUESSES[i].length < WORD_LEN) { GUESSES[i]+=ch.toLowerCase(); renderBoard(); }
+  }
+  function backspace() {
+    if (LOCKED || GUESSES.length===0) return;
+    const i = GUESSES.length-1; if (GUESSES[i].length===0) return;
+    GUESSES[i] = GUESSES[i].slice(0,-1); renderBoard();
+  }
+
+  function finalizeGame(won) {
+    LOCKED = true;
+    const s = loadStats();
+    const b = getBucket(s, MODE, WORD_LEN);
+
+    // Count games only once per puzzleId (avoid F5 spam)
+    const alreadyCounted = b._countedPid === PUZZLE_ID;
+    if (!alreadyCounted) {
+      b.games += 1;
+      b._countedPid = PUZZLE_ID;
+    }
+
+    if (won && !b._wonPid?.includes(PUZZLE_ID)) {
+      b.wins += 1;
+      const today = todayISO();
+      // streak only applies to daily mode
+      if (MODE === 'daily') {
+        if (b.lastWinDate) {
+          const prev = new Date(b.lastWinDate+'T00:00:00Z');
+          const cur = new Date(today+'T00:00:00Z');
+          const diff = Math.round((cur - prev)/86400000);
+          b.streak = diff === 1 ? (b.streak+1) : (diff === 0 ? b.streak : 1);
+        } else {
+          b.streak = 1;
+        }
+        b.lastWinDate = today;
+      }
+      b._wonPid = (b._wonPid || []).concat(PUZZLE_ID);
+    } else if (!won && MODE === 'daily') {
+      // a loss breaks streak for daily if played today
+      const today = todayISO();
+      const pidDay = PUZZLE_ID.slice(0,10);
+      if (pidDay === today) b.streak = 0;
+    }
+
+    saveStats(s);
+    updateStatsUI();
+  }
+
+  function submitGuess() {
+    if (LOCKED || GUESSES.length===0) return;
+    const i = GUESSES.length-1;
+    const g = GUESSES[i];
+    if (g.length !== WORD_LEN) { msg.textContent = 'Not enough letters.'; return; }
+    if (!ALLOWED.has(g)) { msg.textContent = 'Not in word list.'; return; }
+
+    const tiles = scoreGuess(ANSWER, g);
+    renderBoard(); updateKeyStates();
+    const win = tiles.every(t => t==='correct');
+
+    if (win) { msg.textContent = 'You win! 🎉'; finalizeGame(true); return; }
+    if (GUESSES.length >= MAX_GUESSES) {
+      msg.textContent = `Out of guesses. The word was ${ANSWER.toUpperCase()}.`;
+      finalizeGame(false);
+      return;
+    }
+  }
+
+  async function shareResult() {
+    const rows = GUESSES.slice(0, Math.min(GUESSES.length, MAX_GUESSES));
+    const squares = rows.map(g => scoreGuess(ANSWER,g).map(x => x==='correct'?'🟩': x==='present'?'🟨':'⬛').join('')).join('\n');
+    const won = rows.length>0 && scoreGuess(ANSWER, rows[rows.length-1]).every(x=>x==='correct');
+    const attempts = won ? rows.length : 'X';
+    const text = [
+      `${cfg.sharePrefix || 'wxrdle'} • ${WORD_LEN}-letter • ${MODE}`,
+      `Puzzle #${puzzleNumber(PUZZLE_ID)} • ${attempts}/${MAX_GUESSES}`,
+      squares
+    ].join('\n');
+    try {
+      if (navigator.share) await navigator.share({ text });
+      else { await navigator.clipboard.writeText(text); msg.textContent = 'Copied result to clipboard ✅'; }
+    } catch { msg.textContent = 'Could not share.'; }
+  }
+
+  // physical keyboard
+  window.addEventListener('keydown', (e) => {
+    if (e.key==='Enter') submitGuess();
+    else if (e.key==='Backspace') backspace();
+    else if (/^[a-z]$/i.test(e.key)) typeChar(e.key);
+  });
+
+  // boot
+  renderKeyboard();
+  await loadLists();
+  newPuzzle(MODE);
+  updateStatsUI();
+})();
+</script>
+</body>
+</html>
