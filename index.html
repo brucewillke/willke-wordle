@@ -129,6 +129,7 @@
       <button id="newRandomBtn">New random</button>
       <button id="shareBtn">Share</button>
       <button id="nameBtn">👤 Name</button>
+      <button id="testBtn" style="background: #ff6b6b; color: white;">🧪 Test Alerts</button>
       <span class="hint">Type or use keyboard below.</span>
     </div>
 
@@ -326,6 +327,12 @@ Using emergency fallback mode...`;
   document.getElementById('newRandomBtn').addEventListener('click', () => { MODE='random'; newPuzzle('random'); });
   document.getElementById('shareBtn').addEventListener('click', shareResult);
   document.getElementById('nameBtn').addEventListener('click', showNameDialog);
+  
+  // Test button for debugging notifications
+  document.getElementById('testBtn').addEventListener('click', () => {
+    console.log('🧪 Test button clicked');
+    showErrorMessage('This is a test error message to verify notifications work!');
+  });
 
   const rows = ['qwertyuiop','asdfghjkl','↵zxcvbnm⌫'];
   function renderKeyboard() {
@@ -545,6 +552,63 @@ Try refreshing the page or contact the site administrator.`;
     if (GUESSES[i].length < WORD_LEN) { 
       GUESSES[i] += ch.toLowerCase(); 
       renderBoard(); 
+      
+      // Check if word is now complete and provide feedback
+      if (GUESSES[i].length === WORD_LEN) {
+        console.log(`Word complete: "${GUESSES[i]}" - waiting for Enter key`);
+        
+        // Visual feedback that word is complete
+        msg.textContent = `Word complete: "${GUESSES[i].toUpperCase()}" - Press ENTER ↵ to submit!`;
+        msg.style.color = '#6ca0ff';
+        msg.style.fontWeight = 'bold';
+        msg.style.backgroundColor = 'rgba(108, 160, 255, 0.1)';
+        msg.style.padding = '8px';
+        msg.style.borderRadius = '6px';
+        msg.style.border = '1px solid #6ca0ff';
+        
+        // Make the Enter key pulse to draw attention
+        const enterKey = document.querySelector('.key');
+        const enterKeys = document.querySelectorAll('.key');
+        for (const key of enterKeys) {
+          if (key.textContent === '↵') {
+            key.style.animation = 'pulse 1s infinite';
+            key.style.background = '#6ca0ff';
+            key.style.color = '#081424';
+            break;
+          }
+        }
+        
+        // Add pulse animation if not exists
+        if (!document.getElementById('pulse-animation')) {
+          const style = document.createElement('style');
+          style.id = 'pulse-animation';
+          style.textContent = `
+            @keyframes pulse {
+              0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(108, 160, 255, 0.7); }
+              70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(108, 160, 255, 0); }
+              100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(108, 160, 255, 0); }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+      } else {
+        // Clear any previous completion messages
+        if (msg.textContent.includes('Press ENTER')) {
+          msg.textContent = '';
+          msg.style.cssText = '';
+          
+          // Reset Enter key styling
+          const enterKeys = document.querySelectorAll('.key');
+          for (const key of enterKeys) {
+            if (key.textContent === '↵') {
+              key.style.animation = '';
+              key.style.background = '';
+              key.style.color = '';
+              break;
+            }
+          }
+        }
+      }
     }
   }
   function backspace() {
@@ -559,6 +623,23 @@ Try refreshing the page or contact the site administrator.`;
     }
     GUESSES[i] = GUESSES[i].slice(0, -1);
     renderBoard();
+    
+    // Clear completion message and styling when word becomes incomplete
+    if (GUESSES[i].length < WORD_LEN && msg.textContent.includes('Press ENTER')) {
+      msg.textContent = '';
+      msg.style.cssText = '';
+      
+      // Reset Enter key styling
+      const enterKeys = document.querySelectorAll('.key');
+      for (const key of enterKeys) {
+        if (key.textContent === '↵') {
+          key.style.animation = '';
+          key.style.background = '';
+          key.style.color = '';
+          break;
+        }
+      }
+    }
   }
 
   function finalizeGame(won) {
@@ -844,7 +925,10 @@ Try refreshing the page or contact the site administrator.`;
   }
 
   function showErrorMessage(message) {
-    console.log('Showing error message:', message); // Debug log
+    console.log('🚨 showErrorMessage called with:', message); // Enhanced debug
+    
+    // IMMEDIATE visual feedback - force browser attention
+    document.title = '🚨 ERROR: ' + message;
     
     // Update the regular message area
     msg.textContent = message;
@@ -866,84 +950,120 @@ Try refreshing the page or contact the site administrator.`;
     msg.style.transform = 'translateZ(0)';
     msg.offsetHeight; // Force reflow
     
+    // Try native alert as backup (in case DOM manipulation is being blocked)
+    try {
+      alert('🚨 ERROR: ' + message);
+      console.log('✅ Native alert shown successfully');
+    } catch (e) {
+      console.log('❌ Native alert blocked:', e);
+    }
+    
     // SUPER PROMINENT mobile notification - takes up most of screen
-    console.log('Creating GIANT mobile notification overlay'); // Debug
+    console.log('📱 Creating GIANT mobile notification overlay'); // Debug
     const notification = document.createElement('div');
     notification.id = 'mobile-notification';
+    notification.className = 'emergency-notification'; // Add class for debugging
     notification.style.cssText = `
       position: fixed !important;
       top: 0 !important;
       left: 0 !important;
       right: 0 !important;
       bottom: 0 !important;
-      background: rgba(255, 68, 68, 0.95) !important;
+      background: rgba(255, 68, 68, 0.98) !important;
       color: white !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       font-size: 28px !important;
       font-weight: bold !important;
-      z-index: 99999 !important;
+      z-index: 999999 !important;
       text-align: center !important;
       padding: 40px !important;
       box-sizing: border-box !important;
-      animation: pulse 1s infinite !important;
+      animation: errorPulse 1s infinite !important;
+      cursor: pointer !important;
     `;
     
     // Add pulsing animation
     const style = document.createElement('style');
+    style.id = 'error-animations';
     style.textContent = `
-      @keyframes pulse {
-        0% { opacity: 0.8; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.05); }
-        100% { opacity: 0.8; transform: scale(1); }
+      @keyframes errorPulse {
+        0% { opacity: 0.9; transform: scale(1); background: rgba(255, 68, 68, 0.98); }
+        50% { opacity: 1; transform: scale(1.02); background: rgba(255, 100, 100, 0.98); }
+        100% { opacity: 0.9; transform: scale(1); background: rgba(255, 68, 68, 0.98); }
       }
     `;
-    document.head.appendChild(style);
+    if (!document.getElementById('error-animations')) {
+      document.head.appendChild(style);
+    }
     
     notification.innerHTML = `
       <div style="
         background: white; 
         color: #ff4444; 
-        padding: 30px; 
+        padding: 40px; 
         border-radius: 20px; 
         max-width: 90vw; 
-        font-size: 24px;
-        border: 5px solid #ff4444;
-        box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        font-size: 26px;
+        border: 6px solid #ff4444;
+        box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        animation: bounce 0.6s ease-out;
       ">
+        🚨 ERROR 🚨<br><br>
         ${message}
-        <div style="margin-top: 20px; font-size: 16px; color: #666;">
-          Tap anywhere to continue
+        <div style="margin-top: 25px; font-size: 18px; color: #666; background: #ffebee; padding: 15px; border-radius: 10px;">
+          📱 TAP ANYWHERE TO DISMISS 📱
         </div>
       </div>
     `;
     
     // Remove any existing notifications
     const existing = document.getElementById('mobile-notification');
-    if (existing) existing.remove();
+    if (existing) {
+      console.log('🗑️ Removing existing notification');
+      existing.remove();
+    }
     
     document.body.appendChild(notification);
-    console.log('GIANT mobile notification added to DOM');
+    console.log('✅ GIANT mobile notification added to DOM, element:', notification);
+    console.log('✅ Notification parent:', notification.parentNode);
+    console.log('✅ Notification computed style:', window.getComputedStyle(notification).display);
+    
+    // Multiple ways to ensure visibility
+    notification.scrollIntoView({ behavior: 'instant', block: 'center' });
     
     // Click to dismiss
     notification.addEventListener('click', () => {
+      console.log('👆 Notification clicked, removing');
       notification.remove();
-      console.log('Giant mobile notification dismissed by click');
+      document.title = 'WillkeWorld Wordle Wonder'; // Reset title
     });
     
-    // Auto-remove after 4 seconds (longer for readability)
+    // Keyboard dismiss
+    const dismissOnKey = (e) => {
+      console.log('⌨️ Key pressed, dismissing notification');
+      notification.remove();
+      document.title = 'WillkeWorld Wordle Wonder'; // Reset title
+      document.removeEventListener('keydown', dismissOnKey);
+    };
+    document.addEventListener('keydown', dismissOnKey);
+    
+    // Auto-remove after 6 seconds (longer for readability)
     setTimeout(() => {
       if (notification && notification.parentNode) {
+        console.log('⏱️ Auto-removing notification after timeout');
         notification.remove();
-        console.log('Giant mobile notification auto-removed');
+        document.title = 'WillkeWorld Wordle Wonder'; // Reset title
       }
-    }, 4000);
+    }, 6000);
     
     setTimeout(() => {
       msg.classList.remove('error-shake');
       msg.style.cssText = ''; // Reset all styles at once
-    }, 5000); // Longer duration for mobile
+    }, 7000); // Longer duration for mobile
+    
+    console.log('🎯 showErrorMessage function complete');
   }
 
   function submitGuess() {
