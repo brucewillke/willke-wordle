@@ -89,6 +89,22 @@
     .dialog .answer-word { font-size: 28px; }
     .key { font-size: 14px; }
     .tile { font-size: clamp(14px, 4vw, 20px); }
+    
+    /* Force error message visibility on mobile */
+    .msg.error-shake {
+      background: #ff6b6b !important;
+      color: white !important;
+      font-size: 16px !important;
+      padding: 12px !important;
+      border: 3px solid #ffffff !important;
+      box-shadow: 0 0 20px rgba(255, 107, 107, 0.8) !important;
+      animation: shake 0.5s ease-in-out, flash 2s ease-in-out !important;
+    }
+    
+    @keyframes flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
   }
 </style>
 </head>
@@ -573,19 +589,20 @@
     
     console.log('Dialog setup complete'); // Debug
     
-    // Mobile fallback - also show alert if dialog doesn't appear
-    if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      console.log('Mobile detected, setting up alert fallback'); // Debug
-      setTimeout(() => {
-        if (document.body.contains(overlay)) {
-          console.log('Dialog still exists, showing mobile alert as backup'); // Debug
-          const alertMessage = won ? 
-            `🎉 You won! The word was ${ANSWER.toUpperCase()}. Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!` :
-            `😔 Game Over! The word was ${ANSWER.toUpperCase()}.`;
-          alert(alertMessage);
-        }
-      }, 1000);
-    }
+    // Mobile fallback - ALWAYS show alert
+    console.log('Mobile detected, setting up alert fallback'); // Debug
+    setTimeout(() => {
+      console.log('Showing alert for mobile'); // Debug
+      const alertMessage = won ? 
+        `🎉 You won! The word was ${ANSWER.toUpperCase()}. Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!` :
+        `😔 Game Over! The word was ${ANSWER.toUpperCase()}.`;
+      try {
+        alert(alertMessage);
+        console.log('Game dialog alert shown successfully');
+      } catch(e) {
+        console.log('Game dialog alert failed:', e);
+      }
+    }, 200);
   }
 
   function showNameDialog() {
@@ -653,30 +670,43 @@
     console.log('Showing error message:', message); // Debug log
     msg.textContent = message;
     msg.classList.add('error-shake');
-    msg.style.color = '#ff6b6b'; // Make error more visible
-    msg.style.backgroundColor = 'rgba(255, 107, 107, 0.2)'; // Background highlight
-    msg.style.padding = '8px';
-    msg.style.borderRadius = '6px';
-    msg.style.fontWeight = 'bold';
+    msg.style.color = '#ff6b6b !important'; // Make error more visible
+    msg.style.backgroundColor = 'rgba(255, 107, 107, 0.9) !important'; // Stronger background
+    msg.style.padding = '12px !important';
+    msg.style.borderRadius = '8px !important';
+    msg.style.fontWeight = 'bold !important';
+    msg.style.fontSize = '16px !important'; // Larger text for mobile
+    msg.style.border = '2px solid #ff6b6b !important'; // Border for visibility
+    msg.style.zIndex = '999 !important'; // Ensure it's on top
+    msg.style.position = 'relative !important';
     
-    // Force visibility on mobile
+    // Force visibility on mobile with multiple methods
     msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
-    // Mobile fallback - also use alert for critical messages
-    if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      console.log('Mobile detected, showing alert as fallback'); // Debug
-      setTimeout(() => {
+    // Mobile-specific: Force repaint
+    msg.style.transform = 'translateZ(0)';
+    msg.offsetHeight; // Force reflow
+    
+    // Mobile fallback - ALWAYS show alert for critical messages
+    console.log('Mobile detected, showing alert as fallback'); // Debug
+    setTimeout(() => {
+      try {
         alert(message);
-      }, 100);
-    }
+        console.log('Alert shown successfully');
+      } catch(e) {
+        console.log('Alert failed:', e);
+        // Final fallback - try to make message area flash
+        msg.style.backgroundColor = '#ff0000 !important';
+        setTimeout(() => {
+          msg.style.backgroundColor = 'rgba(255, 107, 107, 0.9) !important';
+        }, 200);
+      }
+    }, 50);
     
     setTimeout(() => {
       msg.classList.remove('error-shake');
-      msg.style.color = 'var(--muted)'; // Reset color
-      msg.style.backgroundColor = 'transparent'; // Reset background
-      msg.style.padding = '0';
-      msg.style.fontWeight = 'normal';
-    }, 3000); // Even longer duration for mobile
+      msg.style.cssText = ''; // Reset all styles at once
+    }, 4000); // Longer duration for mobile
   }
 
   function submitGuess() {
