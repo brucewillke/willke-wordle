@@ -248,6 +248,12 @@
     appearance: none; /* Standard property for compatibility */
     user-select: none; /* Prevent text selection */
     font-size: 16px; /* Prevent iOS zoom on input focus */
+    transition: all 0.1s ease; /* Fast response for all buttons */
+  }
+  
+  button:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
   }
   button.primary { background: var(--accent); color: #081424; border-color: transparent; }
   button:disabled { opacity: .6; cursor: not-allowed; }
@@ -262,8 +268,38 @@
     border-radius: 6px; 
     user-select: none; /* Prevent text selection */
     cursor: pointer;
+    transition: all 0.1s ease; /* Fast visual feedback */
+    position: relative;
+    overflow: hidden;
   }
   .key.wide { grid-column: span 3; }
+  .key.extra-wide { grid-column: span 4; } /* For Enter key */
+  .key:active {
+    transform: scale(0.95);
+    background-color: #333;
+  }
+  .key:hover:not(:active) {
+    background-color: #2a2a2a;
+  }
+  .key::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+    pointer-events: none;
+  }
+  .key.ripple::after {
+    width: 100px;
+    height: 100px;
+  }
+  .key.wide { grid-column: span 3; }
+  .key.extra-wide { grid-column: span 4; } /* For Enter key */
   .key.state-absent { background: var(--absent); border-color: var(--absent); }
   .key.state-present { background: var(--present); border-color: var(--present); color: #111; }
   .key.state-correct { background: var(--correct); border-color: var(--correct); }
@@ -347,9 +383,19 @@
       min-height: 36px; /* Smaller for mobile */
       border-radius: 4px;
       font-weight: 500;
+      transition: all 0.08s ease; /* Very fast response */
+    }
+    .key:active {
+      transform: scale(0.92);
+      background-color: #444 !important;
+      transition: all 0.05s ease;
     }
     .key.wide {
       font-size: 10px;
+    }
+    .key.extra-wide {
+      font-size: 9px;
+      font-weight: 700;
     }
     
     /* Mobile bottom sheet settings */
@@ -848,22 +894,96 @@ Using emergency fallback mode...`;
     }
   });
 
-  const rows = ['qwertyuiop','asdfghjkl','zxcvbnm⌫↵'];
+  const rows = ['qwertyuiop','asdfghjkl','↵zxcvbnm⌫'];
+  
+  function addRippleEffect(button) {
+    button.classList.add('ripple');
+    setTimeout(() => {
+      button.classList.remove('ripple');
+    }, 300);
+  }
+
   function renderKeyboard() {
     kbd.innerHTML = '';
     for (const r of rows) {
-      const row = document.createElement('div'); row.className = 'kbd-row';
+      const row = document.createElement('div'); 
+      row.className = 'kbd-row';
       for (const ch of r) {
-        const b = document.createElement('button'); b.className = 'key'; if (ch==='↵'||ch==='⌫') b.classList.add('wide');
-        b.textContent = ch;
-        b.addEventListener('click', () => {
-          if (ch==='↵') submitGuess();
-          else if (ch==='⌫') backspace();
-          else typeChar(ch);
+        const b = document.createElement('button'); 
+        b.className = 'key'; 
+        
+        // Special sizing for different keys
+        if (ch==='↵') {
+          b.classList.add('extra-wide'); // Make Enter larger
+          b.textContent = 'ENTER';
+        } else if (ch==='⌫') {
+          b.classList.add('wide'); // Keep Delete standard wide
+          b.textContent = '⌫';
+        } else {
+          b.textContent = ch;
+        }
+        
+        // Enhanced event handling for better responsiveness
+        let isPressed = false;
+        
+        // Mouse events
+        b.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          isPressed = true;
+          addRippleEffect(b);
         });
+        
+        b.addEventListener('mouseup', () => {
+          if (isPressed) {
+            isPressed = false;
+            handleKeyPress(ch);
+          }
+        });
+        
+        b.addEventListener('mouseleave', () => {
+          isPressed = false;
+        });
+        
+        // Touch events for mobile
+        b.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          isPressed = true;
+          addRippleEffect(b);
+          
+          // Haptic feedback on supported devices
+          if (navigator.vibrate) {
+            navigator.vibrate(10);
+          }
+        }, { passive: false });
+        
+        b.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          if (isPressed) {
+            isPressed = false;
+            handleKeyPress(ch);
+          }
+        }, { passive: false });
+        
+        b.addEventListener('touchcancel', () => {
+          isPressed = false;
+        });
+        
         row.appendChild(b);
       }
       kbd.appendChild(row);
+    }
+  }
+
+  function handleKeyPress(ch) {
+    // Immediate visual feedback
+    console.log('Key pressed:', ch);
+    
+    if (ch==='↵') {
+      submitGuess();
+    } else if (ch==='⌫') {
+      backspace();
+    } else {
+      typeChar(ch);
     }
   }
 
@@ -1875,34 +1995,51 @@ Try refreshing the page or contact the site administrator.`;
     
     if (e.key==='Enter') {
       e.preventDefault(); // Prevent form submission on mobile
-      submitGuess();
+      handleKeyPress('↵');
     }
     else if (e.key==='Backspace') {
       e.preventDefault(); // Prevent navigation on mobile
-      backspace();
+      handleKeyPress('⌫');
     }
-    else if (/^[a-z]$/i.test(e.key)) typeChar(e.key);
+    else if (/^[a-z]$/i.test(e.key)) {
+      handleKeyPress(e.key.toLowerCase());
+    }
   });
 
-  // Enhanced mobile touch event handling
+  // Optimized mobile touch event handling
   let touchStartY = 0;
   let touchEndY = 0;
   let touchStartX = 0;
   let touchEndX = 0;
   let isScrolling = false;
   
+  // Only handle document-level touch events, not keyboard-specific ones
   document.addEventListener('touchstart', (e) => {
+    // Skip if touch is on keyboard
+    if (e.target.closest('.kbd')) {
+      return;
+    }
+    
     touchStartY = e.changedTouches[0].screenY;
     touchStartX = e.changedTouches[0].screenX;
     isScrolling = false;
   }, { passive: true });
   
   document.addEventListener('touchmove', (e) => {
-    // Allow normal scrolling behavior
+    // Skip if touch is on keyboard
+    if (e.target.closest('.kbd')) {
+      return;
+    }
+    
     isScrolling = true;
   }, { passive: true });
   
   document.addEventListener('touchend', (e) => {
+    // Skip if touch is on keyboard
+    if (e.target.closest('.kbd')) {
+      return;
+    }
+    
     touchEndY = e.changedTouches[0].screenY;
     touchEndX = e.changedTouches[0].screenX;
     
@@ -1910,14 +2047,6 @@ Try refreshing the page or contact the site administrator.`;
     const deltaY = touchEndY - touchStartY;
     if (deltaY > 50 && window.scrollY <= 0 && !isScrolling) {
       e.preventDefault();
-    }
-    
-    // Add haptic feedback on iOS if available
-    if (window.navigator && navigator.vibrate) {
-      // Very subtle vibration for button presses
-      if (e.target.tagName === 'BUTTON') {
-        navigator.vibrate(10);
-      }
     }
   }, { passive: false });
 
