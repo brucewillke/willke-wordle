@@ -257,33 +257,67 @@
   }
   button.primary { background: var(--accent); color: #081424; border-color: transparent; }
   button:disabled { opacity: .6; cursor: not-allowed; }
-  .kbd { display: grid; gap: 4px; margin-top: 6px; flex-shrink: 0; }
-  .kbd-row { display: flex; gap: 4px; justify-content: center; align-items: center; }
+  .kbd { display: grid; gap: 6px; margin-top: 6px; flex-shrink: 0; }
+  .kbd-row { display: flex; gap: 6px; justify-content: center; }
   .key { 
-    min-width: 43px; /* Consistent width for letter keys */
-    min-height: 42px; /* Smaller but still touchable */
-    touch-action: manipulation; /* Prevents zoom on double-tap */
-    -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
-    font-size: 14px; /* Smaller font for compact layout */
-    border-radius: 6px; 
-    user-select: none; /* Prevent text selection */
+    height: 58px;
+    min-width: 43px;
+    background: #818384;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 13px;
     cursor: pointer;
-    transition: all 0.1s ease; /* Fast visual feedback */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-transform: uppercase;
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.1s ease;
     position: relative;
     overflow: hidden;
-    font-weight: 700;
   }
-  .key.wide { 
-    min-width: 65px; /* Wider for ENTER and DELETE */
+  
+  .key:hover {
+    background: #9a9c9e;
+  }
+  
+  .key:active {
+    background: #787c7e;
+    transform: scale(0.96);
+  }
+  
+  .key.wide {
+    min-width: 65px;
     font-size: 12px;
-    font-weight: 700;
+  }
+  
+  /* Wordle-style key states */
+  .key.state-absent { 
+    background: #3a3a3c; 
+    border: none;
+    color: white;
+  }
+  .key.state-present { 
+    background: #b59f3b; 
+    border: none;
+    color: white;
+  }
+  .key.state-correct { 
+    background: #538d4e; 
+    border: none;
+    color: white;
   }
   .key:active {
-    transform: scale(0.95);
-    background-color: #333;
+    background: #787c7e;
+    transform: scale(0.96);
   }
   .key:hover:not(:active) {
-    background-color: #2a2a2a;
+    background: #9a9c9e;
   }
   .key::after {
     content: '';
@@ -303,9 +337,6 @@
     height: 100px;
   }
   .key.wide { grid-column: span 3; }
-  .key.state-absent { background: var(--absent); border-color: var(--absent); }
-  .key.state-present { background: var(--present); border-color: var(--present); color: #111; }
-  .key.state-correct { background: var(--correct); border-color: var(--correct); }
   .msg { min-height: 22px; color: var(--muted); margin: 6px 0 2px; font-weight: 500; }
   a { color: var(--accent); text-decoration: none; }
   .title { font-weight: 800; letter-spacing: .5px; }
@@ -372,32 +403,43 @@
       min-height: auto; /* Let aspect ratio control height */
     }
     
-    /* Compact keyboard */
+    /* Compact keyboard matching Wordle style */
     .kbd {
-      gap: 3px;
+      gap: 4px;
       margin-top: 4px;
       margin-bottom: 8px;
     }
     .kbd-row {
-      gap: 2px;
+      gap: 4px;
     }
     .key { 
-      font-size: 12px;
-      min-height: 36px; /* Smaller for mobile */
+      height: 48px;
       min-width: 32px;
-      border-radius: 4px;
-      font-weight: 500;
-      transition: all 0.08s ease; /* Very fast response */
+      font-size: 11px;
+      border-radius: 3px;
+      transition: all 0.08s ease;
     }
     .key:active {
       transform: scale(0.92);
-      background-color: #444 !important;
-      transition: all 0.05s ease;
+      background: #6e7073 !important;
+    }
+    .key:hover {
+      background: #8a8d90 !important;
     }
     .key.wide {
-      min-width: 50px;
+      min-width: 48px;
       font-size: 10px;
-      font-weight: 700;
+    }
+    
+    /* Mobile-specific key states */
+    .key.state-absent { 
+      background: #3a3a3c !important;
+    }
+    .key.state-present { 
+      background: #b59f3b !important;
+    }
+    .key.state-correct { 
+      background: #538d4e !important;
     }
     
     /* Mobile bottom sheet settings */
@@ -896,7 +938,11 @@ Using emergency fallback mode...`;
     }
   });
 
-  const rows = ['qwertyuiop','asdfghjkl','↵zxcvbnm⌫'];
+  const rows = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['Enter','z','x','c','v','b','n','m','Backspace']
+  ];
   
   function addRippleEffect(button) {
     button.classList.add('ripple');
@@ -907,152 +953,97 @@ Using emergency fallback mode...`;
 
   function renderKeyboard() {
     kbd.innerHTML = '';
-    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-      const r = rows[rowIndex];
-      const row = document.createElement('div'); 
-      row.className = 'kbd-row';
+    
+    rows.forEach(row => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'kbd-row';
       
-      // Special handling for bottom row to get proper Wordle layout
-      if (rowIndex === 2) {
-        // Bottom row: ENTER + letters + DELETE
-        for (const ch of r) {
-          const b = document.createElement('button'); 
-          b.className = 'key';
-          
-          if (ch === '↵') {
-            b.classList.add('wide');
-            b.textContent = 'ENTER';
-            b.style.marginRight = '6px'; // Add space after ENTER
-          } else if (ch === '⌫') {
-            b.classList.add('wide');
-            b.textContent = '⌫';
-            b.style.marginLeft = '6px'; // Add space before DELETE
-          } else {
-            b.textContent = ch.toUpperCase();
+      row.forEach(key => {
+        const keyEl = document.createElement('button');
+        keyEl.className = 'key';
+        
+        if (key === 'Enter' || key === 'Backspace') {
+          keyEl.classList.add('wide');
+        }
+        
+        if (key === 'Enter') {
+          keyEl.textContent = 'enter';
+          keyEl.dataset.key = 'Enter';
+        } else if (key === 'Backspace') {
+          keyEl.innerHTML = '⌫';
+          keyEl.dataset.key = 'Backspace';
+        } else {
+          keyEl.textContent = key;
+          keyEl.dataset.key = key;
+        }
+        
+        // Enhanced event handling
+        let isPressed = false;
+        
+        // Mouse events
+        keyEl.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          isPressed = true;
+          addRippleEffect(keyEl);
+        });
+        
+        keyEl.addEventListener('mouseup', () => {
+          if (isPressed) {
+            isPressed = false;
+            handleKeyPress(keyEl.dataset.key);
           }
+        });
+        
+        keyEl.addEventListener('mouseleave', () => {
+          isPressed = false;
+        });
+        
+        // Touch events for mobile
+        keyEl.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          isPressed = true;
+          addRippleEffect(keyEl);
           
-          // Enhanced event handling for better responsiveness
-          let isPressed = false;
-          
-          // Mouse events
-          b.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            isPressed = true;
-            addRippleEffect(b);
-          });
-          
-          b.addEventListener('mouseup', () => {
-            if (isPressed) {
-              isPressed = false;
-              handleKeyPress(ch);
-            }
-          });
-          
-          b.addEventListener('mouseleave', () => {
+          if (navigator.vibrate) {
+            navigator.vibrate(10);
+          }
+        }, { passive: false });
+        
+        keyEl.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          if (isPressed) {
             isPressed = false;
-          });
-          
-          // Touch events for mobile
-          b.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            isPressed = true;
-            addRippleEffect(b);
-            
-            // Haptic feedback on supported devices
-            if (navigator.vibrate) {
-              navigator.vibrate(10);
-            }
-          }, { passive: false });
-          
-          b.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            if (isPressed) {
-              isPressed = false;
-              handleKeyPress(ch);
-            }
-          }, { passive: false });
-          
-          b.addEventListener('touchcancel', () => {
-            isPressed = false;
-          });
-          
-          row.appendChild(b);
-        }
-      } else {
-        // Top two rows - normal layout
-        for (const ch of r) {
-          const b = document.createElement('button'); 
-          b.className = 'key';
-          b.textContent = ch.toUpperCase();
-          
-          // Enhanced event handling for better responsiveness
-          let isPressed = false;
-          
-          // Mouse events
-          b.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            isPressed = true;
-            addRippleEffect(b);
-          });
-          
-          b.addEventListener('mouseup', () => {
-            if (isPressed) {
-              isPressed = false;
-              handleKeyPress(ch);
-            }
-          });
-          
-          b.addEventListener('mouseleave', () => {
-            isPressed = false;
-          });
-          
-          // Touch events for mobile
-          b.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            isPressed = true;
-            addRippleEffect(b);
-            
-            // Haptic feedback on supported devices
-            if (navigator.vibrate) {
-              navigator.vibrate(10);
-            }
-          }, { passive: false });
-          
-          b.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            if (isPressed) {
-              isPressed = false;
-              handleKeyPress(ch);
-            }
-          }, { passive: false });
-          
-          b.addEventListener('touchcancel', () => {
-            isPressed = false;
-          });
-          
-          row.appendChild(b);
-        }
-      }
+            handleKeyPress(keyEl.dataset.key);
+          }
+        }, { passive: false });
+        
+        keyEl.addEventListener('touchcancel', () => {
+          isPressed = false;
+        });
+        
+        rowEl.appendChild(keyEl);
+      });
       
-      kbd.appendChild(row);
-    }
+      kbd.appendChild(rowEl);
+    });
   }
 
-  function handleKeyPress(ch) {
-    // Immediate visual feedback
-    console.log('Key pressed:', ch);
+  function handleKeyPress(key) {
+    console.log('Key pressed:', key);
     
-    if (ch==='↵') {
+    if (key === 'Enter') {
       submitGuess();
-    } else if (ch==='⌫') {
+    } else if (key === 'Backspace') {
       backspace();
     } else {
-      typeChar(ch);
+      typeChar(key.toLowerCase());
     }
   }
 
   function updateKeyStates() {
-    const states = {}; const rank = {absent:0,present:1,correct:2};
+    const states = {}; 
+    const rank = {absent:0,present:1,correct:2};
+    
     for (const g of GUESSES) {
       if (g.length !== ANSWER.length) continue;
       const tiles = scoreGuess(ANSWER,g);
@@ -1061,11 +1052,16 @@ Using emergency fallback mode...`;
         if (!(c in states) || rank[s] > rank[states[c]]) states[c] = s;
       });
     }
+    
     for (const btn of kbd.querySelectorAll('.key')) {
-      const c = btn.textContent;
-      if (!c || c.length!==1 || !/[a-z]/.test(c)) continue;
+      const key = btn.dataset.key;
+      if (!key || key === 'Enter' || key === 'Backspace') continue;
+      
+      const c = key.toLowerCase();
       btn.classList.remove('state-absent','state-present','state-correct');
-      if (states[c]) btn.classList.add('state-'+states[c]);
+      if (states[c]) {
+        btn.classList.add('state-'+states[c]);
+      }
     }
   }
 
@@ -2058,12 +2054,12 @@ Try refreshing the page or contact the site administrator.`;
     }
     
     if (e.key==='Enter') {
-      e.preventDefault(); // Prevent form submission on mobile
-      handleKeyPress('↵');
+      e.preventDefault();
+      handleKeyPress('Enter');
     }
     else if (e.key==='Backspace') {
-      e.preventDefault(); // Prevent navigation on mobile
-      handleKeyPress('⌫');
+      e.preventDefault();
+      handleKeyPress('Backspace');
     }
     else if (/^[a-z]$/i.test(e.key)) {
       handleKeyPress(e.key.toLowerCase());
