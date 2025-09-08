@@ -361,8 +361,11 @@
     renderBoard(); updateKeyStates();
     const win = tiles.every(t => t==='correct');
 
+    console.log(`Guess ${GUESSES.length}: ${g}, Win: ${win}, Max: ${MAX_GUESSES}`);
+
     if (win) { msg.textContent = 'You win! 🎉'; finalizeGame(true); return; }
     if (GUESSES.length >= MAX_GUESSES) {
+      console.log(`Game over! Showing answer: ${ANSWER}`);
       msg.textContent = `Out of guesses. The word was ${ANSWER.toUpperCase()}.`;
       finalizeGame(false);
       return;
