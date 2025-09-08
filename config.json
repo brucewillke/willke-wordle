@@ -2,9 +2,9 @@
   "title": "wxrdle lite",
   "defaultWordLength": 5,
   "maxGuesses": 6,
-  "mode": "daily",               // "daily" or "random"
-  "dailyEpoch": "2024-01-01",    // Puzzle #0 date (ISO)
-  "publicSeed": "your-public-seed",   // Any string; makes daily selection deterministic for your fork
+  "mode": "daily",
+  "dailyEpoch": "2024-01-01",
+  "publicSeed": "your-public-seed",
   "sharePrefix": "wxrdle • lite",
-  "statsEnabled": true           // localStorage-based stats
+  "statsEnabled": true
 }

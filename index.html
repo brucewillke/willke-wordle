@@ -95,7 +95,13 @@
 
 <script>
 (async function(){
-  const cfg = await fetch('config.json').then(r => r.json());
+  let cfg;
+  try {
+    cfg = await fetch('config.json').then(r => r.json());
+  } catch (e) {
+    console.error('Failed to load config.json:', e);
+    cfg = { title: 'wxrdle lite', defaultWordLength: 5, maxGuesses: 6, mode: 'daily' };
+  }
   document.getElementById('appTitle').textContent = cfg.title || 'wxrdle lite';
 
   // State
@@ -150,9 +156,20 @@
   // discover available lengths
   const avail = [];
   for (let l=3; l<=10; l++) {
-    try { const ok = await fetch(`words/answers-${l}.txt`, { cache:'no-store' }); if (ok.ok) avail.push(l); } catch {}
+    try { 
+      const res = await fetch(`words/answers-${l}.txt`, { cache:'no-store' }); 
+      if (res.ok) avail.push(l); 
+    } catch (e) {
+      console.log(`No answers-${l}.txt file found`);
+    }
   }
-  if (avail.length === 0) { msg.textContent = 'No word lists found. Add /words/answers-5.txt.'; return; }
+  if (avail.length === 0) { 
+    msg.textContent = 'No word lists found. Add /words/answers-5.txt.'; 
+    console.error('No word files found in /words/ directory');
+    return; 
+  }
+
+  console.log('Available word lengths:', avail);
 
   lenSel.innerHTML = avail.map(l => `<option value="${l}">${l}</option>`).join('');
   lenSel.value = String(avail.includes(WORD_LEN) ? WORD_LEN : avail[0]);
@@ -224,11 +241,17 @@
   }
 
   async function loadLists() {
-    const ans = await fetch(`words/answers-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text());
-    const alw = await fetch(`words/allowed-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text()).catch(()=> '');
-    const sanitize = (txt) => [...new Set(txt.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(s => s.length===WORD_LEN && /^[a-z]+$/.test(s)))];
-    ANSWERS = sanitize(ans);
-    ALLOWED = new Set(sanitize(alw).concat(ANSWERS));
+    try {
+      const ans = await fetch(`words/answers-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text());
+      const alw = await fetch(`words/allowed-${WORD_LEN}.txt`, { cache:'no-store' }).then(r => r.text()).catch(()=> '');
+      const sanitize = (txt) => [...new Set(txt.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(s => s.length===WORD_LEN && /^[a-z]+$/.test(s)))];
+      ANSWERS = sanitize(ans);
+      ALLOWED = new Set(sanitize(alw).concat(ANSWERS));
+      console.log(`Loaded ${ANSWERS.length} answers and ${ALLOWED.size} allowed words for length ${WORD_LEN}`);
+    } catch (e) {
+      console.error('Failed to load word lists:', e);
+      msg.textContent = `Failed to load word lists for ${WORD_LEN}-letter words.`;
+    }
   }
 
   function getDailyPuzzleId() {
