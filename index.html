@@ -63,6 +63,8 @@
   .dialog .lose { color:#ff6b6b; }
   .dialog .answer-word { font-size:32px; font-weight:800; margin:16px 0; letter-spacing:2px; }
   .dialog button { margin-top:20px; padding:12px 24px; font-size:16px; }
+  .dialog input { margin:10px 0; padding:8px 12px; border:1px solid #333; border-radius:6px; background:var(--tile-bg); color:var(--fg); font-size:16px; width:200px; }
+  .name-display { color:var(--accent); font-weight:600; }
   .error-shake { animation: shake 0.5s ease-in-out; }
   @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 </style>
@@ -84,6 +86,7 @@
       <button id="newDailyBtn">New daily</button>
       <button id="newRandomBtn">New random</button>
       <button id="shareBtn">Share</button>
+      <button id="nameBtn">👤 Name</button>
       <span class="hint">Type or use keyboard below.</span>
     </div>
 
@@ -134,11 +137,19 @@
 
   // localStorage stats helpers
   const STATS_KEY = 'wxrdle-lite-stats';
+  const USER_NAME_KEY = 'wxrdle-lite-username';
+  
   function loadStats() {
     try { return JSON.parse(localStorage.getItem(STATS_KEY) || '{}'); } catch { return {}; }
   }
   function saveStats(s) {
     localStorage.setItem(STATS_KEY, JSON.stringify(s));
+  }
+  function loadUserName() {
+    return localStorage.getItem(USER_NAME_KEY) || '';
+  }
+  function saveUserName(name) {
+    localStorage.setItem(USER_NAME_KEY, name.trim());
   }
   function statsBucketKey(mode, len) {
     return `${mode}-${len}`; // daily-5, random-6, etc.
@@ -156,7 +167,11 @@
     const s = loadStats();
     const b = getBucket(s, 'daily', WORD_LEN);
     const r = getBucket(s, 'random', WORD_LEN);
+    const userName = loadUserName();
+    const greeting = userName ? `<span class="name-display">${userName}</span>'s Stats: ` : '';
+    
     statsEl.innerHTML = `
+      ${greeting}
       <span class="pill">Daily ${WORD_LEN}: G ${b.games} • W ${b.wins} • Streak ${b.streak}</span>
       <span class="pill">Random ${WORD_LEN}: G ${r.games} • W ${r.wins}</span>
     `;
@@ -188,6 +203,7 @@
   document.getElementById('newDailyBtn').addEventListener('click', () => { MODE='daily'; newPuzzle('daily'); });
   document.getElementById('newRandomBtn').addEventListener('click', () => { MODE='random'; newPuzzle('random'); });
   document.getElementById('shareBtn').addEventListener('click', shareResult);
+  document.getElementById('nameBtn').addEventListener('click', showNameDialog);
 
   const rows = ['qwertyuiop','asdfghjkl','↵zxcvbnm⌫'];
   function renderKeyboard() {
@@ -395,9 +411,12 @@
     const dialog = document.createElement('div');
     dialog.className = 'dialog';
     
+    const userName = loadUserName();
+    const personalGreeting = userName ? ` ${userName}` : '';
+    
     if (won) {
       dialog.innerHTML = `
-        <h2 class="win">🎉 Congratulations!</h2>
+        <h2 class="win">🎉 Congratulations${personalGreeting}!</h2>
         <p>You solved today's 1776 Wordle!</p>
         <div class="answer-word">${ANSWER.toUpperCase()}</div>
         <p>Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!</p>
@@ -405,7 +424,7 @@
       `;
     } else {
       dialog.innerHTML = `
-        <h2 class="lose">😔 Game Over</h2>
+        <h2 class="lose">😔 Game Over${personalGreeting}</h2>
         <p>Better luck next time!</p>
         <div class="answer-word">${ANSWER.toUpperCase()}</div>
         <p>The word was <strong>${ANSWER.toUpperCase()}</strong></p>
@@ -431,6 +450,67 @@
       }
     };
     document.addEventListener('keydown', closeOnEscape);
+  }
+
+  function showNameDialog() {
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'dialog';
+    
+    const currentName = loadUserName();
+    
+    dialog.innerHTML = `
+      <h2>👤 Enter Your Name</h2>
+      <p>Personalize your 1776 Wordle experience!</p>
+      <input type="text" id="nameInput" placeholder="Enter your name" value="${currentName}" maxlength="20">
+      <div>
+        <button onclick="saveName()">Save Name</button>
+        <button onclick="this.closest('.dialog-overlay').remove()" style="margin-left:10px;">Cancel</button>
+      </div>
+    `;
+    
+    // Make saveName function available globally for the onclick
+    window.saveName = () => {
+      const nameInput = document.getElementById('nameInput');
+      const name = nameInput.value.trim();
+      if (name) {
+        saveUserName(name);
+        updateStatsUI();
+        overlay.remove();
+        showErrorMessage(`Welcome, ${name}! 👋`);
+      } else {
+        nameInput.style.borderColor = '#ff6b6b';
+        nameInput.focus();
+      }
+    };
+    
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // Focus the input
+    setTimeout(() => {
+      const input = document.getElementById('nameInput');
+      input.focus();
+      input.select();
+    }, 100);
+    
+    // Handle Enter key in input
+    dialog.querySelector('#nameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        window.saveName();
+      } else if (e.key === 'Escape') {
+        overlay.remove();
+      }
+    });
+    
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
   }
 
   function showErrorMessage(message) {
@@ -545,6 +625,13 @@
   await loadLists();
   newPuzzle(MODE);
   updateStatsUI();
+  
+  // Show name dialog on first visit if no name is set
+  if (!loadUserName()) {
+    setTimeout(() => {
+      showNameDialog();
+    }, 1000);
+  }
 })();
 </script>
 </body>
