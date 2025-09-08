@@ -6,25 +6,11 @@
   name="viewport"
   content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
 />
-<title>wxrdle lite</title>
+<title>WillkeWorld Wordle Wonder</title>
 <style>
   :root {
-    --bg: #111  lenSel.innerHTML = avail.map(l => `<option value="${l}">${l}</option>`).join('');
-  lenSel.value = String(avail.includes(WORD_LEN) ? WORD_LEN : avail[0]);
-
-  lenSel.addEventListener('change', async () => { 
-    WORD_LEN = Number(lenSel.value); 
-    await loadLists(); 
-    newPuzzle(MODE); 
-    updateStatsUI(); 
-  });
-  
-  catSel.addEventListener('change', async () => { 
-    CURRENT_CATEGORY = catSel.value; 
-    await loadLists(); 
-    newPuzzle(MODE); 
-    updateStatsUI(); 
-  });  --fg: #f2f2f2;
+    --bg: #111;
+    --fg: #f2f2f2;
     --muted: #aaa;
     --tile-bg: #222;
     --absent: #3a3a3c;
@@ -129,9 +115,9 @@
     cfg = await fetch('config.json').then(r => r.json());
   } catch (e) {
     console.error('Failed to load config.json:', e);
-    cfg = { title: 'wxrdle lite', defaultWordLength: 5, maxGuesses: 6, mode: 'daily' };
+    cfg = { title: 'WillkeWorld Wordle Wonder', defaultWordLength: 5, maxGuesses: 6, mode: 'daily' };
   }
-  document.getElementById('appTitle').textContent = cfg.title || 'wxrdle lite';
+  document.getElementById('appTitle').textContent = cfg.title || 'WillkeWorld Wordle Wonder';
 
   // State
   let WORD_LEN = cfg.defaultWordLength ?? 5;
@@ -530,7 +516,7 @@
     
     dialog.innerHTML = `
       <h2>👤 Enter Your Name</h2>
-      <p>Personalize your 1776 Wordle experience!</p>
+      <p>Personalize your WillkeWorld Wordle Wonder experience!</p>
       <input type="text" id="nameInput" placeholder="Enter your name" value="${currentName}" maxlength="20">
       <div>
         <button onclick="saveName()">Save Name</button>

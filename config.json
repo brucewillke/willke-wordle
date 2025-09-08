@@ -1,10 +1,10 @@
 {
-  "title": "1776 Wordle",
+  "title": "WillkeWorld Wordle Wonder",
   "defaultWordLength": 5,
   "maxGuesses": 6,
   "mode": "daily",
   "dailyEpoch": "2024-01-01",
-  "publicSeed": "revolutionary-war-1776-america",
-  "sharePrefix": "1776 Wordle",
+  "publicSeed": "willkeworld-wordle-wonder-2025",
+  "sharePrefix": "WillkeWorld Wordle Wonder",
   "statsEnabled": true
 }
