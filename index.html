@@ -129,7 +129,6 @@
       <button id="newRandomBtn">New random</button>
       <button id="shareBtn">Share</button>
       <button id="nameBtn">👤 Name</button>
-      <button id="testBtn" style="background: #ff6b6b; color: white;">🧪 Test Alerts</button>
       <span class="hint">Type or use keyboard below.</span>
     </div>
 
@@ -327,14 +326,8 @@ Using emergency fallback mode...`;
   document.getElementById('newRandomBtn').addEventListener('click', () => { MODE='random'; newPuzzle('random'); });
   document.getElementById('shareBtn').addEventListener('click', shareResult);
   document.getElementById('nameBtn').addEventListener('click', showNameDialog);
-  
-  // Test button for debugging notifications
-  document.getElementById('testBtn').addEventListener('click', () => {
-    console.log('🧪 Test button clicked');
-    showErrorMessage('This is a test error message to verify notifications work!');
-  });
 
-  const rows = ['qwertyuiop','asdfghjkl','↵zxcvbnm⌫'];
+  const rows = ['qwertyuiop','asdfghjkl','zxcvbnm⌫↵'];
   function renderKeyboard() {
     kbd.innerHTML = '';
     for (const r of rows) {
