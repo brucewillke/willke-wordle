@@ -409,14 +409,15 @@
   .error-shake { animation: shake 0.5s ease-in-out; }
   @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
   
-  /* Mobile-specific improvements */
+  /* Mobile-specific improvements - Simplified and Reliable */
   @media (max-width: 768px) {
-    /* Better height management with dynamic viewport units */
-    html, body { 
-      height: 100%; 
-      min-height: 100vh;
-      min-height: 100svh; /* Small viewport height for mobile */
-      overflow-x: hidden; /* Prevent horizontal scrolling */
+    /* Force reliable viewport behavior on mobile */
+    html, body {
+      height: 100%;
+      height: 100vh;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
     }
     
     body {
@@ -429,48 +430,48 @@
       -moz-user-select: none;
       -ms-user-select: none;
       user-select: none;
-      /* Ensure proper scrolling behavior */
-      overflow-y: auto;
     }
     
     main {
-      flex: 1;
+      height: calc(100vh - 60px); /* Fixed height based on header */
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      min-height: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
       /* Use safe area insets for notched devices */
-      padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+      padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
     }
     
     .wrap {
-      flex: 1;
-      padding: 6px 8px;
+      height: 100%; /* Use full available height */
+      padding: 4px 8px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      min-height: 0;
-      /* Better height management to prevent overlapping but not too restrictive */
-      max-height: calc(100vh - 80px);
-      max-height: calc(100svh - 80px);
-      overflow-y: auto;
+      overflow: hidden;
+      box-sizing: border-box;
     }
     
-    /* Compact controls with better touch targets and proper spacing */
+    /* Fixed-height sections to prevent overlap */
     .controls {
       flex-shrink: 0;
-      gap: 6px;
-      margin: 6px 0;
+      height: auto;
+      min-height: 60px; /* Fixed minimum height */
+      gap: 4px;
+      margin: 4px 0;
+      padding: 8px 0;
+      background: rgba(17, 17, 17, 0.8);
+      border-radius: 6px;
     }
     
     .stats {
       flex-shrink: 0;
+      height: auto;
+      min-height: 24px;
       font-size: 11px;
       margin: 4px 0;
+      padding: 2px 0;
     }
     
-    /* Improved game container layout with proper spacing */
+    /* Mobile-specific game container - takes remaining space */
     .game-container {
       flex: 1;
       min-height: 0;
@@ -478,17 +479,19 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 8px 0;
+      padding: 4px 0;
+      overflow: hidden; /* Prevent content from spilling out */
     }
     
-    /* Better board sizing and spacing */
+    /* Mobile-optimized board - constrained but proportional */
     #board {
       flex: 0 0 auto;
       width: 100%;
-      max-width: min(350px, 90vw);
+      max-width: min(320px, 85vw); /* Smaller max width for mobile */
       margin: 0 auto;
-      /* Ensure board has enough space and doesn't get crushed */
-      min-height: calc(6 * 45px + 5 * 4px); /* 6 rows * min height + gaps - realistic sizing */
+      /* Calculate height based on actual mobile constraints */
+      height: auto;
+      max-height: 60vh; /* Limit height to prevent overflow */
     }
     
     .msg {
@@ -498,49 +501,40 @@
       max-width: 100%;
     }
     
-    /* Responsive row layout with proper spacing */
+    /* Mobile-specific row layout */
     .row {
-      gap: 4px;
-      margin: 3px 0;
+      gap: 3px;
+      margin: 2px 0;
       width: 100%;
-      max-width: 100%;
       display: grid;
       justify-content: center;
     }
     
-    /* Improved tile sizing and visibility - better balanced for mobile */
+    /* Mobile-optimized tiles - smaller and more manageable */
     .tile { 
-      /* Responsive font sizing that works better on all devices */
-      font-size: clamp(16px, 4.5vw, 20px);
-      font-weight: 800;
-      border-radius: 4px;
-      border-width: 2px;
+      /* Smaller, mobile-friendly font sizing */
+      font-size: clamp(14px, 3.5vw, 18px);
+      font-weight: 700;
+      border-radius: 3px;
+      border-width: 1px;
       aspect-ratio: 1 / 1;
       
-      /* Better size constraints for mobile */
-      min-width: 45px;
-      min-height: 45px;
-      max-width: 60px;
-      max-height: 60px;
+      /* Smaller constraints for mobile screens */
+      min-width: 40px;
+      min-height: 40px;
+      max-width: 52px;
+      max-height: 52px;
       
-      /* Improved visibility and contrast */
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
-      
-      /* Better text rendering */
-      text-rendering: optimizeLegibility;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      
-      /* Center text more precisely */
+      /* Simplified styling for mobile */
       display: flex;
       align-items: center;
       justify-content: center;
       line-height: 1;
       
-      /* Prevent any weird mobile behaviors */
+      /* Prevent mobile quirks */
       -webkit-tap-highlight-color: transparent;
       touch-action: none;
+      user-select: none;
     }
     
     /* Enhanced tile states for mobile */
@@ -563,14 +557,16 @@
       box-shadow: 0 2px 4px rgba(83, 141, 78, 0.3);
     }
     
-    /* Compact but usable keyboard with proper positioning */
+    /* Mobile-specific keyboard - always at bottom */
     .kbd {
       flex-shrink: 0;
-      gap: 3px;
-      margin: 8px 0 4px 0;
-      padding: 0;
+      gap: 2px;
+      margin: 0;
+      padding: 4px 0;
       width: 100%;
       max-width: 100%;
+      position: relative; /* Ensure natural positioning */
+      bottom: 0; /* Stick to bottom */
     }
     .kbd-row {
       gap: 3px;
@@ -2528,42 +2524,78 @@ Try refreshing the page or contact the site administrator.`;
       }
     });
     
-    // Better viewport handling for iOS Safari
-    const setViewportHeight = () => {
-      document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+    // Better viewport handling for iOS Safari - fix mobile viewport issues
+    const setMobileViewport = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+      
+      // Force layout recalculation on iOS
+      document.body.style.height = `${window.innerHeight}px`;
+      
+      // Prevent zooming on orientation change
+      if (window.orientation !== undefined) {
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.body.style.height = `${window.innerHeight}px`;
+        }, 500);
+      }
     };
     
-    setViewportHeight();
-    window.addEventListener('resize', setViewportHeight);
+    setMobileViewport();
+    window.addEventListener('resize', setMobileViewport);
     window.addEventListener('orientationchange', () => {
-      setTimeout(setViewportHeight, 500);
+      setTimeout(setMobileViewport, 500);
     });
+    
+    // Prevent viewport scaling issues on iOS
+    document.addEventListener('touchmove', function(e) {
+      if (e.scale !== 1) {
+        e.preventDefault();
+      }
+    }, { passive: false });
   }
   
   // Android-specific optimizations
   if (/Android/.test(navigator.userAgent)) {
     console.log('Android device detected, applying Android-specific optimizations');
     
-    // Handle Android keyboard resize
+    // Handle Android keyboard and viewport issues
     let initialViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    let isKeyboardOpen = false;
     
-    const handleViewportChange = () => {
+    const handleMobileViewportChange = () => {
       const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
       const heightDifference = initialViewportHeight - currentHeight;
       
       // Keyboard is likely open if height changed significantly
-      if (heightDifference > 150) {
+      if (heightDifference > 150 && !isKeyboardOpen) {
+        isKeyboardOpen = true;
         document.body.classList.add('keyboard-open');
-      } else {
+        
+        // Force body height to prevent layout issues
+        document.body.style.height = `${currentHeight}px`;
+        document.body.style.overflow = 'hidden';
+        
+        console.log('Android keyboard opened, adjusting layout');
+      } else if (heightDifference < 100 && isKeyboardOpen) {
+        isKeyboardOpen = false;
         document.body.classList.remove('keyboard-open');
+        
+        // Restore normal height
+        document.body.style.height = `${initialViewportHeight}px`;
+        
+        console.log('Android keyboard closed, restoring layout');
       }
     };
     
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('resize', handleMobileViewportChange);
     } else {
-      window.addEventListener('resize', handleViewportChange);
+      window.addEventListener('resize', handleMobileViewportChange);
     }
+    
+    // Set initial body height for Android
+    document.body.style.height = `${initialViewportHeight}px`;
   }
 
   // boot
