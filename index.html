@@ -442,9 +442,6 @@
       overflow-y: auto;
       /* Use safe area insets for notched devices */
       padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
-      /* Ensure main takes up available space properly */
-      height: calc(100vh - 100px);
-      height: calc(100svh - 100px);
     }
     
     .wrap {
@@ -452,33 +449,25 @@
       padding: 6px 8px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       min-height: 0;
-      /* Better height management to prevent overlapping */
-      max-height: calc(100vh - 120px);
-      max-height: calc(100svh - 120px);
-      overflow: visible; /* Allow content to be visible */
+      /* Better height management to prevent overlapping but not too restrictive */
+      max-height: calc(100vh - 80px);
+      max-height: calc(100svh - 80px);
+      overflow-y: auto;
     }
     
     /* Compact controls with better touch targets and proper spacing */
     .controls {
       flex-shrink: 0;
-      gap: 8px;
-      margin: 8px 0 12px 0; /* More bottom margin to separate from game board */
-      padding: 8px 0; /* Add padding for better visual separation */
-      background: rgba(17, 17, 17, 0.95); /* Semi-transparent background */
-      border-radius: 8px;
-      z-index: 10; /* Ensure controls stay on top */
-      position: relative;
+      gap: 6px;
+      margin: 6px 0;
     }
     
     .stats {
       flex-shrink: 0;
       font-size: 11px;
-      margin: 4px 0 8px 0; /* Add bottom margin to separate from game board */
-      padding: 4px 0; /* Add padding */
-      z-index: 10; /* Keep stats visible */
-      position: relative;
+      margin: 4px 0;
     }
     
     /* Improved game container layout with proper spacing */
@@ -487,12 +476,9 @@
       min-height: 0;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start; /* Changed from center to flex-start */
+      justify-content: center;
       align-items: center;
-      padding: 12px 0 16px 0; /* More padding to separate from controls and keyboard */
-      margin: 8px 0; /* Add margin for visual separation */
-      position: relative;
-      z-index: 5; /* Lower than controls but higher than background */
+      padding: 8px 0;
     }
     
     /* Better board sizing and spacing */
@@ -500,48 +486,42 @@
       flex: 0 0 auto;
       width: 100%;
       max-width: min(350px, 90vw);
-      margin: 0 auto 12px auto; /* Add bottom margin to separate from message */
+      margin: 0 auto;
       /* Ensure board has enough space and doesn't get crushed */
-      min-height: calc(6 * 48px + 5 * 6px); /* 6 rows * min height + gaps - more conservative */
-      position: relative;
-      z-index: 5;
+      min-height: calc(6 * 45px + 5 * 4px); /* 6 rows * min height + gaps - realistic sizing */
     }
     
     .msg {
       flex-shrink: 0;
-      margin: 8px 0 12px 0; /* Add more bottom margin to separate from keyboard */
+      margin: 6px 0;
       text-align: center;
       max-width: 100%;
-      padding: 6px 8px; /* Add padding */
-      position: relative;
-      z-index: 5;
     }
     
-    /* Responsive row layout with better spacing */
+    /* Responsive row layout with proper spacing */
     .row {
-      gap: 4px; /* Increased gap to prevent tiles from touching */
-      margin: 3px 0; /* Increased row margin */
+      gap: 4px;
+      margin: 3px 0;
       width: 100%;
       max-width: 100%;
       display: grid;
       justify-content: center;
-      padding: 0 2px; /* Add side padding */
     }
     
-    /* Significantly improved tile sizing and visibility - preventing overlaps */
+    /* Improved tile sizing and visibility - better balanced for mobile */
     .tile { 
       /* Responsive font sizing that works better on all devices */
-      font-size: clamp(14px, 4vw, 20px);
+      font-size: clamp(16px, 4.5vw, 20px);
       font-weight: 800;
       border-radius: 4px;
       border-width: 2px;
       aspect-ratio: 1 / 1;
       
-      /* Better size constraints for mobile - slightly smaller to prevent overlapping */
-      min-width: 42px;
-      min-height: 42px;
-      max-width: 58px;
-      max-height: 58px;
+      /* Better size constraints for mobile */
+      min-width: 45px;
+      min-height: 45px;
+      max-width: 60px;
+      max-height: 60px;
       
       /* Improved visibility and contrast */
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -561,9 +541,6 @@
       /* Prevent any weird mobile behaviors */
       -webkit-tap-highlight-color: transparent;
       touch-action: none;
-      
-      /* Add slight margin to prevent touching */
-      margin: 1px;
     }
     
     /* Enhanced tile states for mobile */
@@ -590,16 +567,10 @@
     .kbd {
       flex-shrink: 0;
       gap: 3px;
-      margin: 12px 0 8px 0; /* More top margin to separate from game board */
-      padding: 8px 4px; /* Add padding around keyboard */
+      margin: 8px 0 4px 0;
+      padding: 0;
       width: 100%;
       max-width: 100%;
-      background: rgba(17, 17, 17, 0.95); /* Semi-transparent background */
-      border-radius: 8px;
-      position: relative;
-      z-index: 15; /* Highest z-index to ensure keyboard is always on top */
-      /* Add subtle border to make keyboard more distinct */
-      border: 1px solid rgba(51, 51, 51, 0.5);
     }
     .kbd-row {
       gap: 3px;
