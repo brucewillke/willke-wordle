@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta
   name="viewport"
-  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
 />
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -241,22 +241,67 @@
   button, select {
     background: #1b1b1b; color: var(--fg); border: 1px solid #333; border-radius: 8px;
     padding: 12px 16px; cursor: pointer; font-weight: 600;
-    min-height: 48px; /* iOS recommended touch target size */
+    min-height: 44px; /* iOS recommended touch target size */
+    min-width: 44px; /* Minimum touch target width */
     touch-action: manipulation; /* Prevents zoom on double-tap */
     -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
     -webkit-appearance: none; /* Remove iOS default styling */
     appearance: none; /* Standard property for compatibility */
     user-select: none; /* Prevent text selection */
     font-size: 16px; /* Prevent iOS zoom on input focus */
-    transition: all 0.1s ease; /* Fast response for all buttons */
+    transition: all 0.15s ease; /* Smooth response for all buttons */
+    box-sizing: border-box; /* Ensure padding doesn't break layout */
+    
+    /* Better text rendering */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    
+    /* Prevent unwanted behaviors */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    outline: none;
+    
+    /* Ensure buttons work well on mobile */
+    position: relative;
+    overflow: hidden;
+  }
+  
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   
   button:active {
-    transform: translateY(1px);
+    transform: translateY(1px) scale(0.98);
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
   }
-  button.primary { background: var(--accent); color: #081424; border-color: transparent; }
-  button:disabled { opacity: .6; cursor: not-allowed; }
+  
+  button.primary { 
+    background: var(--accent); 
+    color: #081424; 
+    border-color: transparent; 
+    font-weight: 700;
+  }
+  
+  button:disabled { 
+    opacity: .6; 
+    cursor: not-allowed; 
+    transform: none !important;
+  }
+  
+  /* Add subtle hover effects for desktop */
+  @media (hover: hover) {
+    button:hover:not(:disabled) {
+      background: #2a2a2a;
+      border-color: #555;
+    }
+    
+    button.primary:hover:not(:disabled) {
+      background: #7bb0ff;
+    }
+  }
   .kbd { display: grid; gap: 6px; margin-top: 6px; flex-shrink: 0; }
   .kbd-row { display: flex; gap: 6px; justify-content: center; }
   .key { 
@@ -366,106 +411,369 @@
   
   /* Mobile-specific improvements */
   @media (max-width: 768px) {
-    /* Less aggressive height constraints */
-    body {
+    /* Better height management with dynamic viewport units */
+    html, body { 
+      height: 100%; 
       min-height: 100vh;
-      min-height: 100dvh;
+      min-height: 100svh; /* Small viewport height for mobile */
+    }
+    
+    body {
+      /* Prevent overscroll and improve touch handling */
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      /* Prevent text selection on mobile */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
     
     main {
       flex: 1;
+      display: flex;
+      flex-direction: column;
       min-height: 0;
-      padding-bottom: 8px;
+      overflow: hidden;
+      /* Use safe area insets for notched devices */
+      padding-bottom: env(safe-area-inset-bottom, 8px);
     }
     
     .wrap {
-      height: 100%;
-      padding: 4px 8px;
+      flex: 1;
+      padding: 6px 8px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      max-height: calc(100vh - 60px); /* Less aggressive constraint */
-      max-height: calc(100dvh - 60px);
+      gap: 6px;
+      min-height: 0;
+      /* More flexible height management */
+      max-height: calc(100vh - 100px);
+      max-height: calc(100svh - 100px);
       overflow: hidden;
     }
     
-    /* Allow controls to be more flexible */
+    /* Compact controls with better touch targets */
     .controls {
       flex-shrink: 0;
+      gap: 6px;
+      margin: 6px 0;
     }
     
     .stats {
       flex-shrink: 0;
+      font-size: 11px;
+      margin: 4px 0;
     }
     
-    /* Game container with better space management */
+    /* Improved game container layout */
     .game-container {
       flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: center;
+      align-items: center;
       padding: 4px 0;
-      margin-bottom: 8px; /* Space before keyboard */
     }
     
+    /* Better board sizing and centering */
     #board {
-      flex: 0 0 auto; /* Don't shrink the board */
-      margin: 0 auto 8px auto;
+      flex: 0 0 auto;
       width: 100%;
-      max-width: 350px;
+      max-width: min(350px, 90vw);
+      margin: 0 auto;
+      /* Ensure board doesn't get crushed */
+      min-height: calc(6 * 50px + 5 * 3px); /* 6 rows * min height + gaps */
     }
     
     .msg {
       flex-shrink: 0;
-      margin-bottom: 4px;
-    }
-    
-    /* Properly sized board and tiles */
-    .row {
-      gap: 3px;
-      margin: 2px 0;
+      margin: 6px 0;
+      text-align: center;
       max-width: 100%;
     }
     
-    /* Mobile-optimized tiles that remain visible */
-    .tile { 
-      font-size: clamp(14px, 4vw, 18px);
-      border-radius: 4px;
-      border-width: 1px;
-      aspect-ratio: 1 / 1;
-      min-height: 40px; /* Ensure minimum visibility */
-      max-height: 60px; /* Prevent tiles from being too large */
+    /* Responsive row layout */
+    .row {
+      gap: 3px;
+      margin: 2px 0;
+      width: 100%;
+      max-width: 100%;
+      display: grid;
+      justify-content: center;
     }
     
-    /* Keyboard positioned properly at bottom */
+    /* Significantly improved tile sizing and visibility */
+    .tile { 
+      /* Responsive font sizing that works better on all devices */
+      font-size: clamp(16px, 5vw, 22px);
+      font-weight: 800;
+      border-radius: 4px;
+      border-width: 2px;
+      aspect-ratio: 1 / 1;
+      
+      /* Better size constraints for mobile */
+      min-width: 45px;
+      min-height: 45px;
+      max-width: 65px;
+      max-height: 65px;
+      
+      /* Improved visibility and contrast */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+      
+      /* Better text rendering */
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      
+      /* Center text more precisely */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      
+      /* Prevent any weird mobile behaviors */
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+    }
+    
+    /* Enhanced tile states for mobile */
+    .tile.absent { 
+      background: var(--absent); 
+      border-color: var(--absent); 
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(58, 58, 60, 0.3);
+    }
+    .tile.present { 
+      background: var(--present); 
+      border-color: var(--present); 
+      color: #000;
+      box-shadow: 0 2px 4px rgba(181, 159, 59, 0.3);
+    }
+    .tile.correct { 
+      background: var(--correct); 
+      border-color: var(--correct); 
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(83, 141, 78, 0.3);
+    }
+    
+    /* Compact but usable keyboard */
     .kbd {
       flex-shrink: 0;
-      gap: 2px;
-      margin: 4px 0 2px 0;
+      gap: 3px;
+      margin: 8px 0 4px 0;
       padding: 0;
+      width: 100%;
+      max-width: 100%;
     }
     .kbd-row {
-      gap: 2px;
+      gap: 3px;
+      justify-content: center;
+      width: 100%;
     }
+    
+    /* Improved mobile keyboard keys */
     .key { 
-      height: 36px;
-      min-width: 24px;
-      font-size: 9px;
-      border-radius: 3px;
-      transition: all 0.08s ease;
+      height: 42px;
+      min-width: 28px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      transition: all 0.1s ease;
+      
+      /* Better touch response */
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      
+      /* Visual improvements */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: none;
+      
+      /* Center text better */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
     }
+    
     .key:active {
-      transform: scale(0.92);
-      background: #6e7073 !important;
+      transform: scale(0.95) translateY(1px);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
-    .key:hover {
-      background: #8a8d90 !important;
+    
+    /* Android keyboard handling */
+    body.keyboard-open .wrap {
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
     }
-    .key.wide {
-      min-width: 36px;
-      font-size: 8px;
+    
+    body.keyboard-open .game-container {
+      padding: 2px 0;
     }
+    
+    body.keyboard-open #board {
+      min-height: auto;
+    }
+    
+    body.keyboard-open .tile {
+      min-height: 35px;
+      max-height: 45px;
+      font-size: clamp(14px, 4.5vw, 18px);
+    }
+    
+    /* iOS dynamic viewport support */
+    @supports (height: 100svh) {
+      body {
+        min-height: 100svh;
+      }
+      
+      .wrap {
+        max-height: calc(100svh - 100px);
+      }
+    }
+    
+    /* Safe area support for notched devices */
+    @supports (padding: env(safe-area-inset-top)) {
+      main {
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
+      }
+      
+      .kbd {
+        margin-bottom: max(4px, env(safe-area-inset-bottom));
+      }
+    }
+    
+    /* Ensure tiles remain proportional on very small screens */
+    @media (max-width: 375px) {
+      .tile {
+        min-width: 40px;
+        min-height: 40px;
+        max-width: 55px;
+        max-height: 55px;
+        font-size: clamp(14px, 4.8vw, 18px);
+      }
+      
+      .key {
+        height: 38px;
+        min-width: 26px;
+        font-size: 10px;
+      }
+      
+      .key.wide {
+        min-width: 38px;
+      }
+    }
+    
+    /* Larger phones get slightly bigger elements */
+    @media (min-width: 400px) and (max-width: 768px) {
+      .tile {
+        min-width: 50px;
+        min-height: 50px;
+        max-width: 70px;
+        max-height: 70px;
+        font-size: clamp(16px, 4.5vw, 24px);
+      }
+      
+      .key {
+        height: 44px;
+        min-width: 30px;
+        font-size: 12px;
+      }
+      
+      .key.wide {
+        min-width: 45px;
+      }
+    }
+    
+    /* Additional mobile-specific optimizations */
+    
+    /* Android keyboard handling */
+    body.keyboard-open .wrap {
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+    
+    body.keyboard-open .game-container {
+      padding: 2px 0;
+    }
+    
+    body.keyboard-open #board {
+      min-height: auto;
+    }
+    
+    body.keyboard-open .tile {
+      min-height: 35px;
+      max-height: 45px;
+      font-size: clamp(14px, 4.5vw, 18px);
+    }
+    
+    /* iOS dynamic viewport support */
+    @supports (height: 100svh) {
+      body {
+        min-height: 100svh;
+      }
+      
+      .wrap {
+        max-height: calc(100svh - 100px);
+      }
+    }
+    
+    /* Safe area support for notched devices */
+    @supports (padding: env(safe-area-inset-top)) {
+      main {
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
+      }
+      
+      .kbd {
+        margin-bottom: max(4px, env(safe-area-inset-bottom));
+      }
+    }
+    
+    /* Ensure tiles remain proportional on very small screens */
+    @media (max-width: 375px) {
+      .tile {
+        min-width: 40px;
+        min-height: 40px;
+        max-width: 55px;
+        max-height: 55px;
+        font-size: clamp(14px, 4.8vw, 18px);
+      }
+      
+      .key {
+        height: 38px;
+        min-width: 26px;
+        font-size: 10px;
+      }
+      
+      .key.wide {
+        min-width: 38px;
+      }
+    }
+    
+    /* Larger phones get slightly bigger elements */
+    @media (min-width: 400px) and (max-width: 768px) {
+      .tile {
+        min-width: 50px;
+        min-height: 50px;
+        max-width: 70px;
+        max-height: 70px;
+        font-size: clamp(16px, 4.5vw, 24px);
+      }
+      
+      .key {
+        height: 44px;
+        min-width: 30px;
+        font-size: 12px;
+      }
+      
+      .key.wide {
+        min-width: 45px;
+      }
+    }
+  }
     
     /* Mobile-specific key states */
     .key.state-absent { 
@@ -1003,7 +1311,7 @@ Using emergency fallback mode...`;
         }
         
         if (key === 'Enter') {
-          keyEl.textContent = 'enter';
+          keyEl.textContent = '↵';
           keyEl.dataset.key = 'Enter';
         } else if (key === 'Backspace') {
           keyEl.innerHTML = '⌫';
@@ -1013,48 +1321,101 @@ Using emergency fallback mode...`;
           keyEl.dataset.key = key;
         }
         
-        // Enhanced event handling
+        // Enhanced mobile-optimized event handling
         let isPressed = false;
+        let touchId = null;
         
-        // Mouse events
-        keyEl.addEventListener('mousedown', (e) => {
+        // Handle all input methods consistently
+        function handlePress(e) {
           e.preventDefault();
+          e.stopPropagation();
           isPressed = true;
           addRippleEffect(keyEl);
-        });
+          
+          // Haptic feedback on mobile
+          if (navigator.vibrate) {
+            navigator.vibrate(15);
+          }
+          
+          // Visual feedback
+          keyEl.style.transform = 'scale(0.95) translateY(1px)';
+          keyEl.style.transition = 'transform 0.1s ease';
+        }
         
-        keyEl.addEventListener('mouseup', () => {
+        function handleRelease(e) {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          
           if (isPressed) {
             isPressed = false;
-            handleKeyPress(keyEl.dataset.key);
+            touchId = null;
+            
+            // Reset visual state
+            keyEl.style.transform = '';
+            
+            // Trigger the key press after a small delay to ensure visual feedback
+            setTimeout(() => {
+              handleKeyPress(keyEl.dataset.key);
+            }, 50);
+          }
+        }
+        
+        function handleCancel() {
+          isPressed = false;
+          touchId = null;
+          keyEl.style.transform = '';
+        }
+        
+        // Touch events (primary for mobile)
+        keyEl.addEventListener('touchstart', (e) => {
+          // Only handle single touch
+          if (e.touches.length > 1) return;
+          
+          touchId = e.touches[0].identifier;
+          handlePress(e);
+        }, { passive: false });
+        
+        keyEl.addEventListener('touchend', (e) => {
+          // Only handle the touch we started with
+          if (touchId !== null) {
+            for (let touch of e.changedTouches) {
+              if (touch.identifier === touchId) {
+                handleRelease(e);
+                break;
+              }
+            }
+          }
+        }, { passive: false });
+        
+        keyEl.addEventListener('touchcancel', handleCancel, { passive: true });
+        
+        // Mouse events (desktop fallback)
+        keyEl.addEventListener('mousedown', (e) => {
+          // Only handle if no touch is active
+          if (touchId === null) {
+            handlePress(e);
+          }
+        });
+        
+        keyEl.addEventListener('mouseup', (e) => {
+          // Only handle if no touch is active
+          if (touchId === null) {
+            handleRelease(e);
           }
         });
         
         keyEl.addEventListener('mouseleave', () => {
-          isPressed = false;
+          // Only handle if no touch is active
+          if (touchId === null) {
+            handleCancel();
+          }
         });
         
-        // Touch events for mobile
-        keyEl.addEventListener('touchstart', (e) => {
+        // Prevent context menu on long press
+        keyEl.addEventListener('contextmenu', (e) => {
           e.preventDefault();
-          isPressed = true;
-          addRippleEffect(keyEl);
-          
-          if (navigator.vibrate) {
-            navigator.vibrate(10);
-          }
-        }, { passive: false });
-        
-        keyEl.addEventListener('touchend', (e) => {
-          e.preventDefault();
-          if (isPressed) {
-            isPressed = false;
-            handleKeyPress(keyEl.dataset.key);
-          }
-        }, { passive: false });
-        
-        keyEl.addEventListener('touchcancel', () => {
-          isPressed = false;
         });
         
         rowEl.appendChild(keyEl);
@@ -2102,77 +2463,104 @@ Try refreshing the page or contact the site administrator.`;
     }
   });
 
-  // Optimized mobile touch event handling
+  // Enhanced mobile touch event handling and scroll prevention
   let touchStartY = 0;
   let touchEndY = 0;
   let touchStartX = 0;
   let touchEndX = 0;
   let isScrolling = false;
+  let lastTouchEnd = 0;
   
-  // Only handle document-level touch events, not keyboard-specific ones
-  document.addEventListener('touchstart', (e) => {
-    // Skip if touch is on keyboard
-    if (e.target.closest('.kbd')) {
-      return;
+  // Prevent double-tap zoom on iOS and Android
+  document.addEventListener('touchend', function(e) {
+    const now = new Date().getTime();
+    const timeSince = now - lastTouchEnd;
+    
+    if ((timeSince < 300) && (timeSince > 0) && !e.target.closest('.kbd, button, select, input')) {
+      e.preventDefault();
     }
     
+    lastTouchEnd = now;
+  }, { passive: false });
+  
+  // Handle document-level touch events for pull-to-refresh prevention
+  document.addEventListener('touchstart', (e) => {
     touchStartY = e.changedTouches[0].screenY;
     touchStartX = e.changedTouches[0].screenX;
     isScrolling = false;
   }, { passive: true });
   
   document.addEventListener('touchmove', (e) => {
-    // Skip if touch is on keyboard
-    if (e.target.closest('.kbd')) {
-      return;
+    const currentY = e.changedTouches[0].screenY;
+    const currentX = e.changedTouches[0].screenX;
+    
+    // Calculate if user is scrolling
+    const deltaY = Math.abs(currentY - touchStartY);
+    const deltaX = Math.abs(currentX - touchStartX);
+    
+    if (deltaY > 10 || deltaX > 10) {
+      isScrolling = true;
     }
     
-    isScrolling = true;
-  }, { passive: true });
-  
-  document.addEventListener('touchend', (e) => {
-    // Skip if touch is on keyboard
-    if (e.target.closest('.kbd')) {
-      return;
-    }
-    
-    touchEndY = e.changedTouches[0].screenY;
-    touchEndX = e.changedTouches[0].screenX;
-    
-    // Only prevent pull-to-refresh if at top of page and pulling down
-    const deltaY = touchEndY - touchStartY;
-    if (deltaY > 50 && window.scrollY <= 0 && !isScrolling) {
+    // Prevent pull-to-refresh only at the top of the page
+    if (currentY > touchStartY && window.scrollY <= 0 && !e.target.closest('.kbd')) {
       e.preventDefault();
     }
   }, { passive: false });
-
+  
+  document.addEventListener('touchend', (e) => {
+    touchEndY = e.changedTouches[0].screenY;
+    touchEndX = e.changedTouches[0].screenX;
+  }, { passive: true });
+  
   // iOS-specific optimizations
   if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-    // Prevent zoom on double tap
-    document.addEventListener('touchend', function(e) {
-      const now = new Date().getTime();
-      const timeSince = now - lastTouchEnd;
-      
-      if ((timeSince < 300) && (timeSince > 0)) {
+    console.log('iOS device detected, applying iOS-specific optimizations');
+    
+    // Disable text selection on iOS
+    document.addEventListener('selectstart', function(e) {
+      if (!e.target.closest('input, textarea')) {
         e.preventDefault();
       }
-      
-      lastTouchEnd = now;
-    }, false);
-    
-    // Disable selection on iOS
-    document.addEventListener('selectstart', function(e) {
-      e.preventDefault();
     });
     
-    // Enhanced viewport handling for iOS
-    const viewport = document.querySelector('meta[name="viewport"]');
-    if (viewport) {
-      viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no';
-    }
+    // Better viewport handling for iOS Safari
+    const setViewportHeight = () => {
+      document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+    };
+    
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(setViewportHeight, 500);
+    });
   }
   
-  let lastTouchEnd = 0;
+  // Android-specific optimizations
+  if (/Android/.test(navigator.userAgent)) {
+    console.log('Android device detected, applying Android-specific optimizations');
+    
+    // Handle Android keyboard resize
+    let initialViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    
+    const handleViewportChange = () => {
+      const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const heightDifference = initialViewportHeight - currentHeight;
+      
+      // Keyboard is likely open if height changed significantly
+      if (heightDifference > 150) {
+        document.body.classList.add('keyboard-open');
+      } else {
+        document.body.classList.remove('keyboard-open');
+      }
+    };
+    
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+    } else {
+      window.addEventListener('resize', handleViewportChange);
+    }
+  }
 
   // boot
   renderKeyboard();
