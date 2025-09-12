@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wordle Wonder">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#111111">
+<title>WillkeWorld Wordle Wonder - Mobile</title>
+<style>
+  :root {
+    --bg: #111;
+    --fg: #f2f2f2;
+    --muted: #aaa;
+    --tile-bg: #222;
+    --absent: #3a3a3c;
+    --present: #b59f3b;
+    --correct: #538d4e;
+    --accent: #6ca0ff;
+  }
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  html, body {
+    height: 100%;
+    height: 100vh;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior: none;
+  }
+  
+  .mobile-app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    overflow: hidden;
+  }
+  
+  /* Header */
+  .header {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #333;
+    margin-bottom: 8px;
+  }
+  
+  .title {
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.5px;
+  }
+  
+  .puzzle-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  
+  /* Controls */
+  .controls {
+    flex-shrink: 0;
+    background: rgba(34, 34, 34, 0.8);
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .controls-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  
+  .game-buttons {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+  }
+  
+  .game-buttons button {
+    flex: 1;
+    padding: 8px 6px;
+    font-size: 11px;
+    min-height: 36px;
+    white-space: nowrap;
+  }
+  
+  .settings-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 12px;
+  }
+  
+  .settings-row select {
+    padding: 6px 8px;
+    font-size: 12px;
+    min-height: 32px;
+    flex: 1;
+  }
+  
+  /* Stats */
+  .stats {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .pill {
+    background: #1b1b1b;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 3px 6px;
+    color: #ddd;
+    white-space: nowrap;
+  }
+  
+  /* Game Area */
+  .game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+    overflow: hidden;
+    padding: 4px 0;
+  }
+  
+  #board {
+    display: grid;
+    gap: 3px;
+    margin-bottom: 12px;
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .row {
+    display: grid;
+    gap: 3px;
+    grid-template-columns: repeat(var(--len, 5), 1fr);
+  }
+  
+  .tile {
+    aspect-ratio: 1;
+    background: var(--tile-bg);
+    border: 2px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: clamp(14px, 4vw, 18px);
+    text-transform: uppercase;
+    border-radius: 4px;
+    color: var(--fg);
+    min-height: 40px;
+    max-height: 50px;
+  }
+  
+  .tile.absent { background: var(--absent); border-color: var(--absent); color: #fff; }
+  .tile.present { background: var(--present); border-color: var(--present); color: #111; }
+  .tile.correct { background: var(--correct); border-color: var(--correct); color: #fff; }
+  
+  .msg {
+    flex-shrink: 0;
+    min-height: 24px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 500;
+    text-align: center;
+    font-size: 13px;
+  }
+  
+  /* Keyboard */
+  .keyboard {
+    flex-shrink: 0;
+    background: rgba(26, 26, 26, 0.9);
+    border-radius: 8px 8px 0 0;
+    padding: 8px 4px 4px 4px;
+    margin: 0 -4px -8px -4px;
+  }
+  
+  .keyboard-row {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    margin: 2px 0;
+  }
+  
+  .key {
+    background: #818384;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-transform: uppercase;
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.1s ease;
+    height: 40px;
+    min-width: 28px;
+    flex: 1;
+    max-width: 40px;
+  }
+  
+  .key:active {
+    background: #6e7073;
+    transform: scale(0.96);
+  }
+  
+  .key.wide {
+    flex: 1.5;
+    max-width: 60px;
+    font-size: 10px;
+  }
+  
+  .key.state-absent { background: #3a3a3c; }
+  .key.state-present { background: #b59f3b; }
+  .key.state-correct { background: #538d4e; }
+  
+  /* Buttons */
+  button, select {
+    background: #1b1b1b;
+    color: var(--fg);
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    min-height: 36px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+    user-select: none;
+    font-size: 14px;
+    transition: all 0.1s ease;
+  }
+  
+  button:active {
+    transform: translateY(1px) scale(0.98);
+    background: #2a2a2a;
+  }
+  
+  button.primary {
+    background: var(--accent);
+    color: #081424;
+    border-color: transparent;
+    font-weight: 700;
+  }
+  
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+  
+  select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f2f2f2' stroke-width='2'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 12px;
+    padding-right: 32px;
+  }
+  
+  /* Dialog styles */
+  .dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  
+  .dialog {
+    background: var(--bg);
+    border: 2px solid #333;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 90vw;
+    text-align: center;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  .dialog h2 {
+    margin: 0 0 16px;
+    font-size: 24px;
+  }
+  
+  .dialog .win { color: var(--correct); }
+  .dialog .lose { color: #ff6b6b; }
+  .dialog .answer-word {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 16px 0;
+    letter-spacing: 2px;
+  }
+  
+  .dialog button {
+    margin-top: 20px;
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+  
+  .dialog input {
+    margin: 10px 0;
+    padding: 12px 16px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: var(--tile-bg);
+    color: var(--fg);
+    width: 240px;
+    font-size: 16px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  .error-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+  
+  /* Very small screens */
+  @media (max-width: 350px) {
+    .tile {
+      min-height: 36px;
+      max-height: 44px;
+      font-size: clamp(12px, 4.5vw, 16px);
+    }
+    
+    .key {
+      height: 36px;
+      min-width: 24px;
+      font-size: 10px;
+    }
+    
+    .key.wide {
+      max-width: 50px;
+      font-size: 9px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="mobile-app">
+  <div class="header">
+    <div class="title" id="appTitle">WillkeWorld Wordle Wonder</div>
+    <div class="puzzle-meta" id="puzzleMeta"></div>
+  </div>
+
+  <div class="controls">
+    <div class="controls-row">
+      <div class="game-buttons">
+        <button id="newDailyBtn" class="primary">📅 Daily</button>
+        <button id="newRandomBtn">🎲 Random</button>
+        <button id="shareBtn">📋 Share</button>
+        <button id="nameBtn">👤</button>
+      </div>
+    </div>
+    
+    <div class="settings-row">
+      <label>Length: <select id="lengthSelect"></select></label>
+      <label>Category: <select id="categorySelect"></select></label>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="game-area">
+    <div id="board"></div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="keyboard" id="keyboard"></div>
+</div>
+
+<script>
+(async function(){
+  let cfg;
+  try {
+    cfg = await fetch('config.json').then(r => r.json());
+  } catch (e) {
+    console.error('Failed to load config.json:', e);
+    cfg = { title: 'WillkeWorld Wordle Wonder', defaultWordLength: 5, maxGuesses: 6, mode: 'daily' };
+  }
+  document.getElementById('appTitle').textContent = cfg.title || 'WillkeWorld Wordle Wonder';
+
+  // State
+  let WORD_LEN = cfg.defaultWordLength ?? 5;
+  let MAX_GUESSES = cfg.maxGuesses ?? 6;
+  let MODE = cfg.mode === 'random' ? 'random' : 'daily';
+  let CURRENT_CATEGORY = 'sports';
+  let CATEGORIES = {};
+  let ANSWERS = [];
+  let ALLOWED = new Set();
+  let PUZZLE_ID = '';
+  let ANSWER = '';
+  let GUESSES = [];
+  let LOCKED = false;
+
+  // UI refs
+  const board = document.getElementById('board');
+  const msg = document.getElementById('msg');
+  const keyboard = document.getElementById('keyboard');
+  const meta = document.getElementById('puzzleMeta');
+  const lenSel = document.getElementById('lengthSelect');
+  const catSel = document.getElementById('categorySelect');
+  const statsEl = document.getElementById('stats');
+
+  // localStorage helpers
+  const STATS_KEY = 'wxrdle-lite-stats';
+  const USER_NAME_KEY = 'wxrdle-lite-username';
+  
+  function loadStats() {
+    try { return JSON.parse(localStorage.getItem(STATS_KEY) || '{}'); } catch { return {}; }
+  }
+  function saveStats(s) {
+    localStorage.setItem(STATS_KEY, JSON.stringify(s));
+  }
+  function loadUserName() {
+    return localStorage.getItem(USER_NAME_KEY) || '';
+  }
+  function saveUserName(name) {
+    localStorage.setItem(USER_NAME_KEY, name.trim());
+  }
+  function statsBucketKey(mode, len, category) {
+    return `${mode}-${len}-${category}`;
+  }
+  function getBucket(stats, mode, len, category) {
+    const key = statsBucketKey(mode, len, category);
+    if (!stats[key]) stats[key] = { games:0, wins:0, streak:0, lastWinDate:'', lastPlayedPid:'' };
+    return stats[key];
+  }
+  function todayISO() {
+    const t = new Date();
+    return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate())).toISOString().slice(0,10);
+  }
+  function updateStatsUI() {
+    const s = loadStats();
+    const b = getBucket(s, 'daily', WORD_LEN, CURRENT_CATEGORY);
+    const r = getBucket(s, 'random', WORD_LEN, CURRENT_CATEGORY);
+    const userName = loadUserName();
+    const greeting = userName ? `${userName}: ` : '';
+    const catName = CATEGORIES[CURRENT_CATEGORY]?.name || CURRENT_CATEGORY;
+    
+    statsEl.innerHTML = `
+      ${greeting}
+      <span class="pill">${catName} Daily: ${b.wins}/${b.games}</span>
+      <span class="pill">Random: ${r.wins}/${r.games}</span>
+    `;
+  }
+
+  // Categories and word loading
+  CATEGORIES = {
+    'sports': { name: 'Sports', description: 'Athletic terms and games' },
+    'history': { name: 'US History', description: 'American historical terms' },
+    'music': { name: 'Music', description: 'Musical terms and instruments' },
+    'art': { name: 'Art', description: 'Artistic terms and techniques' },
+    'literature': { name: 'Literature', description: 'Literary terms and authors' },
+    'bible': { name: 'Bible', description: 'Biblical terms and names' }
+  };
+
+  const availCategories = [];
+  const availLengths = new Set();
+  
+  for (const [catKey, catInfo] of Object.entries(CATEGORIES)) {
+    let foundCategory = false;
+    for (let l = 3; l <= 10; l++) {
+      try {
+        const res = await fetch(`words/${catKey}/answers-${l}.txt`, { 
+          cache: 'no-store',
+          mode: 'cors',
+          method: 'HEAD'
+        });
+        if (res.ok) {
+          foundCategory = true;
+          availLengths.add(l);
+        }
+      } catch (e) {
+        // File doesn't exist, continue
+      }
+    }
+    if (foundCategory) {
+      availCategories.push(catKey);
+    }
+  }
+
+  const avail = Array.from(availLengths).sort((a, b) => a - b);
+  
+  if (avail.length === 0 || availCategories.length === 0) { 
+    availCategories.push('fallback');
+    CATEGORIES['fallback'] = { name: 'Emergency Mode', description: 'Basic word set' };
+    avail.push(5, 6, 7);
+  }
+
+  // Set up selectors
+  catSel.innerHTML = availCategories.map(cat => 
+    `<option value="${cat}">${CATEGORIES[cat].name}</option>`
+  ).join('');
+  CURRENT_CATEGORY = availCategories.includes('sports') ? 'sports' : availCategories[0];
+  catSel.value = CURRENT_CATEGORY;
+
+  lenSel.innerHTML = avail.map(l => `<option value="${l}">${l}</option>`).join('');
+  lenSel.value = String(avail.includes(WORD_LEN) ? WORD_LEN : avail[0]);
+
+  lenSel.addEventListener('change', async () => { 
+    WORD_LEN = Number(lenSel.value); 
+    await loadLists(); 
+    newPuzzle(MODE); 
+    updateStatsUI(); 
+  });
+  
+  catSel.addEventListener('change', async () => { 
+    CURRENT_CATEGORY = catSel.value; 
+    await loadLists(); 
+    newPuzzle(MODE); 
+    updateStatsUI(); 
+  });
+
+  document.getElementById('newDailyBtn').addEventListener('click', () => { MODE='daily'; newPuzzle('daily'); });
+  document.getElementById('newRandomBtn').addEventListener('click', () => { MODE='random'; newPuzzle('random'); });
+  document.getElementById('shareBtn').addEventListener('click', shareResult);
+  document.getElementById('nameBtn').addEventListener('click', showNameDialog);
+
+  // Keyboard
+  const rows = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['Enter','z','x','c','v','b','n','m','Backspace']
+  ];
+
+  function renderKeyboard() {
+    keyboard.innerHTML = '';
+    
+    rows.forEach(row => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'keyboard-row';
+      
+      row.forEach(key => {
+        const keyEl = document.createElement('button');
+        keyEl.className = 'key';
+        
+        if (key === 'Enter' || key === 'Backspace') {
+          keyEl.classList.add('wide');
+        }
+        
+        if (key === 'Enter') {
+          keyEl.textContent = '↵';
+          keyEl.dataset.key = 'Enter';
+        } else if (key === 'Backspace') {
+          keyEl.innerHTML = '⌫';
+          keyEl.dataset.key = 'Backspace';
+        } else {
+          keyEl.textContent = key;
+          keyEl.dataset.key = key;
+        }
+        
+        // Touch handling
+        keyEl.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          keyEl.style.transform = 'scale(0.95)';
+          
+          if (navigator.vibrate) {
+            navigator.vibrate(10);
+          }
+        }, { passive: false });
+        
+        keyEl.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          keyEl.style.transform = '';
+          handleKeyPress(keyEl.dataset.key);
+        }, { passive: false });
+        
+        keyEl.addEventListener('click', () => {
+          handleKeyPress(keyEl.dataset.key);
+        });
+        
+        rowEl.appendChild(keyEl);
+      });
+      
+      keyboard.appendChild(rowEl);
+    });
+  }
+
+  function handleKeyPress(key) {
+    if (key === 'Enter') {
+      submitGuess();
+    } else if (key === 'Backspace') {
+      backspace();
+    } else {
+      typeChar(key.toLowerCase());
+    }
+  }
+
+  function updateKeyStates() {
+    const states = {}; 
+    const rank = {absent:0,present:1,correct:2};
+    
+    for (const g of GUESSES) {
+      if (g.length !== ANSWER.length) continue;
+      const tiles = scoreGuess(ANSWER,g);
+      tiles.forEach((s,i) => {
+        const c = g[i];
+        if (!(c in states) || rank[s] > rank[states[c]]) states[c] = s;
+      });
+    }
+    
+    for (const btn of keyboard.querySelectorAll('.key')) {
+      const key = btn.dataset.key;
+      if (!key || key === 'Enter' || key === 'Backspace') continue;
+      
+      const c = key.toLowerCase();
+      btn.classList.remove('state-absent','state-present','state-correct');
+      if (states[c]) {
+        btn.classList.add('state-'+states[c]);
+      }
+    }
+  }
+
+  function renderBoard() {
+    board.style.setProperty('--len', WORD_LEN);
+    board.innerHTML = '';
+    for (let r = 0; r < MAX_GUESSES; r++) {
+      const row = document.createElement('div'); 
+      row.className = 'row';
+      const guess = GUESSES[r] || '';
+      const isDone = r < GUESSES.length - 1 || (r < GUESSES.length && guess.length === WORD_LEN && !LOCKED);
+      const tiles = isDone ? scoreGuess(ANSWER, guess) : [];
+      
+      for (let c = 0; c < WORD_LEN; c++) {
+        const t = document.createElement('div'); 
+        t.className = 'tile';
+        t.textContent = guess[c] ? guess[c].toUpperCase() : '';
+        if (isDone && guess.length === WORD_LEN) t.classList.add(tiles[c]); 
+        row.appendChild(t);
+      }
+      board.appendChild(row);
+    }
+  }
+
+  function seedIndex(seedStr, modulo) {
+    let h = 2166136261 >>> 0;
+    for (let i=0;i<seedStr.length;i++){ h ^= seedStr.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return modulo ? (h % modulo) : 0;
+  }
+
+  async function loadLists() {
+    try {
+      const answersResponse = await fetch(`words/${CURRENT_CATEGORY}/answers-${WORD_LEN}.txt`, { 
+        cache: 'no-store',
+        mode: 'cors'
+      });
+      
+      if (!answersResponse.ok) {
+        throw new Error(`HTTP ${answersResponse.status}`);
+      }
+      
+      const answerText = await answersResponse.text();
+      
+      let allowedText = '';
+      try {
+        const allowedResponse = await fetch(`words/${CURRENT_CATEGORY}/allowed-${WORD_LEN}.txt`, { 
+          cache: 'no-store',
+          mode: 'cors'
+        });
+        if (allowedResponse.ok) {
+          allowedText = await allowedResponse.text();
+        }
+      } catch (e) {
+        console.warn('Could not load allowed words file:', e.message);
+      }
+      
+      const sanitize = (txt) => [...new Set(txt.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(s => s.length===WORD_LEN && /^[a-z]+$/.test(s)))];
+      ANSWERS = sanitize(answerText);
+      ALLOWED = new Set(sanitize(allowedText).concat(ANSWERS));
+      
+      if (ANSWERS.length === 0) {
+        throw new Error('No valid answers found');
+      }
+      
+    } catch (e) {
+      console.error('Failed to load word lists:', e);
+      msg.textContent = '⚠️ Could not load word lists. Please refresh.';
+      ANSWERS = ['hello', 'world', 'games', 'magic', 'flash'].filter(w => w.length === WORD_LEN);
+      if (ANSWERS.length === 0) {
+        const fallback = { 5: ['hello', 'world'], 6: ['wonder'], 7: ['amazing'] };
+        ANSWERS = fallback[WORD_LEN] || ['error'.padEnd(WORD_LEN, 'x').slice(0, WORD_LEN)];
+      }
+      ALLOWED = new Set(ANSWERS);
+    }
+  }
+
+  function getDailyPuzzleId() {
+    const today = new Date();
+    const iso = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())).toISOString().slice(0,10);
+    return `${iso}-${WORD_LEN}`;
+  }
+
+  function puzzleNumber(pid) {
+    if (!pid.startsWith('20')) return '?';
+    const epoch = new Date(cfg.dailyEpoch || '2024-01-01T00:00:00Z');
+    const d = new Date(pid.slice(0,10)+'T00:00:00Z');
+    const n = Math.floor((d - epoch) / 86400000);
+    return n >= 0 ? n : '?';
+  }
+
+  function newPuzzle(mode) {
+    GUESSES = []; LOCKED = false;
+    let pid, idx;
+    if (mode === 'random') {
+      const rnd = Math.random().toString(36).slice(2,10);
+      pid = `rnd-${rnd}-${WORD_LEN}-${CURRENT_CATEGORY}`;
+      idx = seedIndex(`${rnd}:${WORD_LEN}:${CURRENT_CATEGORY}`, ANSWERS.length);
+    } else {
+      pid = `${getDailyPuzzleId()}-${CURRENT_CATEGORY}`;
+      idx = seedIndex(`${cfg.publicSeed}:${pid}`, ANSWERS.length);
+    }
+    PUZZLE_ID = pid;
+    ANSWER = ANSWERS[idx];
+    const catName = CATEGORIES[CURRENT_CATEGORY]?.name || CURRENT_CATEGORY;
+    meta.textContent = `${catName} • ${mode} • ${WORD_LEN}-letter • #${puzzleNumber(pid)}`;
+    msg.textContent = '';
+    renderBoard(); 
+    updateKeyStates();
+    const s = loadStats(); 
+    getBucket(s, mode, WORD_LEN, CURRENT_CATEGORY); 
+    s[statsBucketKey(mode,WORD_LEN,CURRENT_CATEGORY)].lastPlayedPid = pid; 
+    saveStats(s); 
+    updateStatsUI();
+  }
+
+  function scoreGuess(answer, guess) {
+    const n = answer.length, res = Array(n).fill('absent'), count = {};
+    for (let i=0;i<n;i++) count[answer[i]] = (count[answer[i]]||0)+1;
+    for (let i=0;i<n;i++) if (guess[i]===answer[i]) { res[i]='correct'; count[guess[i]]--; }
+    for (let i=0;i<n;i++) if (res[i]!=='correct' && (count[guess[i]]||0)>0) { res[i]='present'; count[guess[i]]--; }
+    return res;
+  }
+
+  function typeChar(ch) {
+    if (LOCKED || !/^[a-z]$/i.test(ch)) return;
+    
+    if (GUESSES.length === 0) {
+      GUESSES.push('');
+    }
+    
+    if (GUESSES[GUESSES.length-1].length === WORD_LEN) {
+      if (GUESSES.length >= MAX_GUESSES) return;
+      GUESSES.push('');
+    }
+    
+    const i = GUESSES.length-1;
+    if (GUESSES[i].length < WORD_LEN) { 
+      GUESSES[i] += ch.toLowerCase(); 
+      renderBoard(); 
+    }
+  }
+
+  function backspace() {
+    if (LOCKED || GUESSES.length === 0) return;
+    const i = GUESSES.length - 1;
+    if (GUESSES[i].length === 0) {
+      if (GUESSES.length > 1) {
+        GUESSES.pop();
+      }
+      return;
+    }
+    GUESSES[i] = GUESSES[i].slice(0, -1);
+    renderBoard();
+  }
+
+  function finalizeGame(won) {
+    LOCKED = true;
+    const s = loadStats();
+    const b = getBucket(s, MODE, WORD_LEN, CURRENT_CATEGORY);
+
+    const alreadyCounted = b._countedPid === PUZZLE_ID;
+    if (!alreadyCounted) {
+      b.games += 1;
+      b._countedPid = PUZZLE_ID;
+    }
+
+    if (won && !b._wonPid?.includes(PUZZLE_ID)) {
+      b.wins += 1;
+      const today = todayISO();
+      if (MODE === 'daily') {
+        if (b.lastWinDate) {
+          const prev = new Date(b.lastWinDate+'T00:00:00Z');
+          const cur = new Date(today+'T00:00:00Z');
+          const diff = Math.round((cur - prev)/86400000);
+          b.streak = diff === 1 ? (b.streak+1) : (diff === 0 ? b.streak : 1);
+        } else {
+          b.streak = 1;
+        }
+        b.lastWinDate = today;
+      }
+      b._wonPid = (b._wonPid || []).concat(PUZZLE_ID);
+    } else if (!won && MODE === 'daily') {
+      const today = todayISO();
+      const pidDay = PUZZLE_ID.slice(0,10);
+      if (pidDay === today) b.streak = 0;
+    }
+
+    saveStats(s);
+    updateStatsUI();
+    showGameDialog(won);
+  }
+
+  function showGameDialog(won) {
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'dialog';
+    
+    const userName = loadUserName();
+    const personalGreeting = userName ? ` ${userName}` : '';
+    const catName = CATEGORIES[CURRENT_CATEGORY]?.name || CURRENT_CATEGORY;
+    
+    if (won) {
+      dialog.innerHTML = `
+        <h2 class="win">🎉 Congratulations${personalGreeting}!</h2>
+        <p>You solved today's ${catName} Wordle!</p>
+        <div class="answer-word">${ANSWER.toUpperCase()}</div>
+        <p>Solved in ${GUESSES.length} guess${GUESSES.length === 1 ? '' : 'es'}!</p>
+        <button onclick="this.closest('.dialog-overlay').remove()">Continue</button>
+      `;
+    } else {
+      dialog.innerHTML = `
+        <h2 class="lose">😔 Game Over${personalGreeting}</h2>
+        <p>Better luck next time!</p>
+        <div class="answer-word">${ANSWER.toUpperCase()}</div>
+        <p>The word was <strong>${ANSWER.toUpperCase()}</strong></p>
+        <button onclick="this.closest('.dialog-overlay').remove()">Try Again</button>
+      `;
+    }
+    
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
+  }
+
+  function showNameDialog() {
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'dialog';
+    
+    const currentName = loadUserName();
+    
+    dialog.innerHTML = `
+      <h2>👤 Enter Your Name</h2>
+      <p>Personalize your Wordle experience!</p>
+      <input type="text" id="nameInput" placeholder="Enter your name" value="${currentName}" maxlength="20">
+      <div>
+        <button onclick="saveName()">Save Name</button>
+        <button onclick="this.closest('.dialog-overlay').remove()">Cancel</button>
+      </div>
+    `;
+    
+    window.saveName = () => {
+      const nameInput = document.getElementById('nameInput');
+      const name = nameInput.value.trim();
+      if (name) {
+        saveUserName(name);
+        updateStatsUI();
+        overlay.remove();
+        msg.textContent = `Welcome, ${name}! 👋`;
+        setTimeout(() => { msg.textContent = ''; }, 3000);
+      }
+    };
+    
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    setTimeout(() => {
+      const input = document.getElementById('nameInput');
+      input.focus();
+      input.select();
+    }, 100);
+    
+    dialog.querySelector('#nameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        window.saveName();
+      }
+    });
+    
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
+  }
+
+  function submitGuess() {
+    if (LOCKED || GUESSES.length === 0) return;
+    const i = GUESSES.length - 1;
+    const g = GUESSES[i];
+    
+    if (g.length !== WORD_LEN) { 
+      msg.textContent = 'Not enough letters.';
+      msg.classList.add('error-shake');
+      setTimeout(() => { msg.classList.remove('error-shake'); }, 500);
+      return; 
+    }
+    
+    if (!ALLOWED.has(g)) { 
+      msg.textContent = `"${g.toUpperCase()}" is not a valid word!`;
+      msg.classList.add('error-shake');
+      setTimeout(() => { msg.classList.remove('error-shake'); }, 500);
+      GUESSES[i] = '';
+      renderBoard();
+      return; 
+    }
+
+    const tiles = scoreGuess(ANSWER, g);
+    renderBoard(); 
+    updateKeyStates();
+    const win = tiles.every(t => t === 'correct');
+
+    if (win) { 
+      msg.textContent = 'You win! 🎉'; 
+      finalizeGame(true); 
+      return; 
+    }
+    
+    if (GUESSES.length >= MAX_GUESSES) {
+      msg.textContent = `Out of guesses. The word was ${ANSWER.toUpperCase()}.`;
+      finalizeGame(false);
+      return;
+    }
+    
+    msg.textContent = '';
+  }
+
+  async function shareResult() {
+    if (GUESSES.length === 0) {
+      msg.textContent = 'Play a game first before sharing!';
+      return;
+    }
+    
+    const rows = GUESSES.slice(0, Math.min(GUESSES.length, MAX_GUESSES));
+    const squares = rows.map(g => scoreGuess(ANSWER,g).map(x => x==='correct'?'🟩': x==='present'?'🟨':'⬛').join('')).join('\n');
+    const won = rows.length>0 && scoreGuess(ANSWER, rows[rows.length-1]).every(x=>x==='correct');
+    const attempts = won ? rows.length : 'X';
+    const catName = CATEGORIES[CURRENT_CATEGORY]?.name || CURRENT_CATEGORY;
+    const text = [
+      `${catName} Wordle ${puzzleNumber(PUZZLE_ID)} ${attempts}/${MAX_GUESSES}`,
+      '',
+      squares
+    ].join('\n');
+    
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text); 
+        msg.textContent = 'Copied result to clipboard ✅'; 
+      } else {
+        // Fallback
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        if (document.execCommand('copy')) {
+          msg.textContent = 'Copied result to clipboard ✅';
+        } else {
+          throw new Error('Copy failed');
+        }
+        document.body.removeChild(textArea);
+      }
+    } catch (err) {
+      msg.textContent = `Share failed. Copy manually: ${text}`;
+    }
+  }
+
+  // Keyboard event handling
+  window.addEventListener('keydown', (e) => {
+    if (document.querySelector('.dialog-overlay') || e.target.tagName === 'INPUT') {
+      return;
+    }
+    
+    if (e.key==='Enter') {
+      e.preventDefault();
+      handleKeyPress('Enter');
+    }
+    else if (e.key==='Backspace') {
+      e.preventDefault();
+      handleKeyPress('Backspace');
+    }
+    else if (/^[a-z]$/i.test(e.key)) {
+      handleKeyPress(e.key.toLowerCase());
+    }
+  });
+
+  // Mobile optimizations
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+    document.addEventListener('selectstart', function(e) {
+      if (!e.target.closest('input, textarea')) {
+        e.preventDefault();
+      }
+    });
+    
+    const setViewportHeight = () => {
+      document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+      document.body.style.height = `${window.innerHeight}px`;
+    };
+    
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(setViewportHeight, 500);
+    });
+  }
+
+  // Initialize
+  renderKeyboard();
+  await loadLists();
+  newPuzzle(MODE);
+  updateStatsUI();
+  
+  if (!loadUserName()) {
+    setTimeout(() => {
+      showNameDialog();
+    }, 1000);
+  }
+})();
+</script>
+</body>
+</html>
